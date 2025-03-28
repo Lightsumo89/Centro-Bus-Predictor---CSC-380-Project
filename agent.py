@@ -13,7 +13,8 @@ DATABASE = {
 
 # FROM HUB: pid is 8966, first stop is B13 (stpid 17652), last stop is Widewaters Pkwy & Bridge St (stpid 8149)
 
-# TO HUB: pid is 8957/8970, first stop is Widewaters Pkwy & Bridge St (stpid 8149), last stop is B13/A1 (stpid 17652/17640) 
+# TO HUB: pid is 8957/8970, first stop is Widewaters Pkwy & Bridge St (stpid 8149), last stop is B13/A1 (stpid 17652/17640)
+
 
 API_URL_1 = "https://bus-time.centro.org/bustime/api/v3/getvehicles?key=PUZXP7CxWkPaWnvDWdacgiS4M&rt=SY76&format=json"
 
@@ -30,6 +31,9 @@ API_URL_3_before = "https://bus-time.centro.org/bustime/api/v3/getpredictions?ke
 API_URL_3_after = "&tmres=s&rptidatafeed&top=1&format=json"
 
 
+
+
+
 def get_final_stop_id(pid):
     response_2 = requests.get(API_URL_2_before + pid + API_URL_2_after) 
     data_2 = response_2.json()
@@ -42,13 +46,13 @@ def get_final_stop_id(pid):
     return final_stop_id
 
 
-def insert_into_database(stop_name, stop_id, route, direction, arrive_time, delay):
+def insert_into_database(stop_name, stop_id, route, direction, type_arrival, arrive_time, delay):
     db = mysql.connector.connect(**DATABASE)
     cursor = db.cursor()
 
-    insert_query = "INSERT INTO Delays (StopName, StopID, Route, Direction, ArriveTime, Delay) VALUES (%s, %s, %s, %s, %s, %s)"
+    insert_query = "INSERT INTO Delays_New (StopName, StopID, Route, Direction, TypeArrival, ArriveTime, Delay) VALUES (%s, %s, %s, %s, %s, %s, %s)"
 
-    cursor.execute(insert_query, (stop_name, stop_id, route, direction, arrive_time, delay))
+    cursor.execute(insert_query, (stop_name, stop_id, route, direction, type_arrival, arrive_time, delay))
 
     db.commit()	
  
@@ -120,6 +124,7 @@ def poll_api(pid, vid, arrivals):
                             time.sleep(1) # to wait a second from response
 
                             print("inserted")
+                            print(arrivals)
 
                             while True: # get the pid
                                 response_v = requests.get(API_URL_1)
@@ -208,6 +213,7 @@ def poll_api(pid, vid, arrivals):
                 })
 
                 print("inserted")
+                print(arrivals)
 
                 last_stop_name = prediction.get("stpnm") # update all the fields for the next stop since the bus just arrived to the previously predicted stop
                 last_stop_id = prediction.get("stpid")
@@ -236,6 +242,10 @@ def poll_api(pid, vid, arrivals):
                 print("did not arrive yet")	
 
         # it is an error, keep polling until valid prediction response
+
+        else:
+            break
+
         time.sleep(1) # for while True for rest of the stops
 
             		                		
@@ -266,9 +276,25 @@ if __name__ == "__main__":
 
         # 3.
         # remove the duplicates
+        added_arrival_stop_ids = set()
 
-        i = len(arrivals) - 1
+        arrivals_without_duplicates = []
 
+        for arrival in reversed(arrivals):
+            if arrival.get("last_stop_id") not in added_arrival_stop_ids:
+                added_arrival_stop_ids.add(arrival.get("last_stop_id"))
+ 
+                arrivals_without_duplicates.append(arrival)
+
+        arrivals_without_duplicates.reverse()
+
+        print(arrivals_without_duplicates)
+            
         # 4. insert into the database
+
+        for arrival in arrivals_without_duplicates:
+            insert_into_database(arrival.get("last_stop_name"), arrival.get("last_stop_id"), arrival.get("last_route"), arrival.get("last_direction"), arrival.get("last_type"), arrival.get("last_predicted_time"), arrival.get("delay"))
+
+        print("inserted into database")
 
         time.sleep(1) # for the outer while True
