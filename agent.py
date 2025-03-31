@@ -36,39 +36,34 @@ def insert_into_database(stop_name, stop_id, route, direction, arrive_time, dela
 
 
 def poll_api(vid, arrivals):
-    while True: # first getprediction poll
-        response = requests.get(API_URL_3_before + vid + API_URL_3_after)
-        data = response.json()
+    response = requests.get(API_URL_3_before + vid + API_URL_3_after)
+    data = response.json()
 
-        if "prd" in data.get("bustime-response", {}): # not an error
-            prediction = data.get("bustime-response", {}).get("prd", [])[0] # set the initial fields
+    if "prd" in data.get("bustime-response", {}): # not an error
+        prediction = data.get("bustime-response", {}).get("prd", [])[0] # set the initial fields
 
-            last_stop_name = prediction.get("stpnm")
-            last_stop_id = prediction.get("stpid") 
-            last_route = prediction.get("rt")
-            last_direction = prediction.get("rtdir") 
+        last_stop_name = prediction.get("stpnm")
+        last_stop_id = prediction.get("stpid") 
+        last_route = prediction.get("rt")
+        last_direction = prediction.get("rtdir") 
 
-            last_date_time = prediction.get("prdtm").split()
+        last_date_time = prediction.get("prdtm").split()
 
-            last_date = last_date_time[0]
-            last_time = last_date_time[1]
+        last_date = last_date_time[0]
+        last_time = last_date_time[1]
 
-            last_predicted_time = datetime(int(last_date[0:4]), int(last_date[4:6]), int(last_date[6:8]), int(last_time[0:2]), int(last_time[3:5]), int(last_time[6:8]))
+        last_predicted_time = datetime(int(last_date[0:4]), int(last_date[4:6]), int(last_date[6:8]), int(last_time[0:2]), int(last_time[3:5]), int(last_time[6:8]))
 
-            time.sleep(5) # to wait a second before updating response
+        print(f"last stop name: {last_stop_name}, last stop id: {last_stop_id}, last predicted date: {last_date}, last_predicted_time: {last_time}, last route: {last_route}, last direction: {last_direction}")
 
-            print(f"last stop name: {last_stop_name}, last stop id: {last_stop_id}, last predicted date: {last_date}, last_predicted_time: {last_time}, last route: {last_route}, last direction: {last_direction}")
+    else:
+        return # error like running out of API calls
 
-            break
-
-        #it is an error, so keep poling until a valid prediction response
-        time.sleep(5) # for outermost while True
+    time.sleep(5)
 
     # rest of the stops
-
-    a = True
 	
-    while a:	
+    while True:	
         response = requests.get(API_URL_3_before + vid + API_URL_3_after)
         data = response.json()
 
@@ -164,9 +159,7 @@ def poll_api(vid, arrivals):
                                     print("inserted")
                                     print(len(arrivals))
             
-                                    a = False
-
-                                    break
+                                    return
 
                                 else: # either predicting final_stop or first_stop_different_route
                                     arrive_time = datetime.now() # arrived to the final stop (check duplicates below)
@@ -210,9 +203,7 @@ def poll_api(vid, arrivals):
                             time.sleep(5)
 
                         else: # it is an error or empty
-                            a = False
-
-                            break                           
+                            return                          
 
             else: # did not arrive yet 
                 last_date_time = prediction.get("prdtm").split()
@@ -224,12 +215,9 @@ def poll_api(vid, arrivals):
 
                 print("did not arrive yet")	
 
-        # it is an error, keep polling until valid prediction response
-
+        # it is an error
         else: 
-            a = False
-
-            break
+            return
 
         time.sleep(5) # for while True for rest of the stops
 
