@@ -3,35 +3,27 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Centro Bus Website</title>
+  <title>Centro - Public Transportation</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <header>
     <div class="header-container">
-      <div class="logo-container">
-        <a href="putlinkhere.html">
-          <img src="theimage.jpeg" alt="Company Logo">
-        </a>
-      </div>
       <div class="nav-extra">
-        <form action="search.html" method="get" class="search-form">
-          <input type="search" name="query" placeholder="Search...">
-          <button type="submit">Go</button>
-        </form>
         <div class="menu-container" id="menuContainer">
           <button class="menu-btn" id="menuBtn">MENU</button>
-          <!-- The dropdown overlay is absolutely positioned; its width is fixed -->
           <ul class="dropdown-menu">
             <li class="dropdown-item">
               <button class="submenu-btn">ABOUT ▾</button>
               <ul class="nested-menu">
                 <li><a href="contact.html">Contact Us</a></li>
-                <li><a href="executive.html">Executive Staff</a></li>
                 <li><a href="faq.html">FAQs</a></li>
                 <li><a href="time_operation.html">Hours of Operation</a></li>
                 <li><a href="oswego_team.html">OSWEGO Student Team</a></li>
               </ul>
+            </li>
+            <li class="dropdown-item">
+              <a href="faq.html">FAQs</a>
             </li>
             <li class="dropdown-item">
               <a href="how_to_ride.html">HOW TO RIDE</a>
@@ -40,34 +32,38 @@
               <a href="passes.html">PURCHASE</a>
             </li>
             <li class="dropdown-item">
-              <button class="submenu-btn">News &amp; Events ▾</button>
-              <ul class="nested-menu">
-                <li><a href="public_hearings_meetings.html">PUBLIC HEARINGS &amp; MEETINGS</a></li>
-                <li><a href="updates.html">Updates &amp; Alerts</a></li>
-              </ul>
+              <a href="updates.html">News &amp; Events</a>
             </li>
             <li class="dropdown-item">
-              <button class="submenu-btn">ROUTES &amp; SCHEDULES ▾</button>
-              <ul class="nested-menu">
-                <li><a href="oswego.html">OSWEGO</a></li>
-                <li><a href="syracuse.html">SYRACUSE</a></li>
-                <li><a href="rtc.html">William F Walsh RTC</a></li>
-              </ul>
-            </li>
+              <a href="routes.html">ROUTES &amp; SCHEDULES</a>
           </ul>
         </div>
+      </div>
+      <div class="logo-container">
+        <a href="index.html">
+          <img src="logo.jpg" alt="Centro Logo">
+        </a>
       </div>
     </div>
   </header>
 
   <main>
     <section class="hero">
+      <div class="hero-carousel">
+        <div class="carousel-inner">
+          <div class="carousel-item active" style="background-image: url('images/image1.jpeg')"></div>
+          <div class="carousel-item" style="background-image: url('images/image2.jpg')"></div>
+          <div class="carousel-item" style="background-image: url('images/image3.jpg')"></div>
+          <div class="carousel-item" style="background-image: url('images/image4.jpg')"></div>
+        </div>
+      </div>
       <div class="hero-content">
         <h1>Plan Your Trip</h1>
         <p>Get real-time updates and navigate your journey with ease.</p>
         <a href="plan-your-trip.html" class="cta-btn">Track Your Bus</a>
       </div>
     </section>
+
     <section class="quick-links">
       <div class="link-card">
         <h2>Routes &amp; Schedules</h2>
@@ -85,6 +81,7 @@
         <a href="news.html">Learn More</a>
       </div>
     </section>
+
     <section class="info-announcement">
       <h2>Service Alerts</h2>
       <p>Be aware of any service changes or delays.</p>
@@ -92,12 +89,13 @@
     </section>
   </main>
 
-  <script>
-    const menuBtn = document.getElementById('menuBtn');
-    const menuContainer = document.getElementById('menuContainer');
-    menuBtn.addEventListener('click', () => {
-      menuContainer.classList.toggle('active');
-    });
-  </script>
+  <footer>
+    <div class="footer-container">
+      <div class="footer-info">
+        <p>&copy; Oswego Team. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+  <script src="script.js"></script>
 </body>
 </html>
