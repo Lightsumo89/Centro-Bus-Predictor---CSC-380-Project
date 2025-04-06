@@ -44,11 +44,11 @@ def create_session():
     return session
 
 
-def insert_into_database(stop_name, stop_id, route, direction, arrive_time, delay):
+def insert_into_database(stop_name, stop_id, route, direction, arrive_time, delay, table_name):
     db = mysql.connector.connect(**DATABASE)
     cursor = db.cursor()
 
-    insert_query = "INSERT INTO Delays (StopName, StopID, Route, Direction, ArriveTime, Delay) VALUES (%s, %s, %s, %s, %s, %s)"
+    insert_query = "INSERT INTO " + table_name + " (StopName, StopID, Route, Direction, ArriveTime, Delay) VALUES (%s, %s, %s, %s, %s, %s)"
 
     cursor.execute(insert_query, (stop_name, stop_id, route, direction, arrive_time, delay))
 
@@ -65,7 +65,7 @@ def poll_api(vid, arrivals, session):
 
         if "prd" in data_2.get("bustime-response", {}): # not an error
             if prediction.get("rt") == "SY76":
-                prediction = data_2.get("bustime-response", {}).get("prd", [])[0] # set the initial fields, maybe add if SY76 is the route
+                prediction = data_2.get("bustime-response", {}).get("prd", [])[0] # set the initial fields
 
                 last_stop_name = prediction.get("stpnm")
                 last_stop_id = prediction.get("stpid") 
@@ -117,6 +117,8 @@ def poll_api(vid, arrivals, session):
                             "delay": delay.total_seconds()
                         })
 
+                        insert_into_database()
+
                         last_stop_name = prediction.get("stpnm")
                         last_stop_id = prediction.get("stpid") 
                         last_route = prediction.get("rt")
@@ -145,6 +147,8 @@ def poll_api(vid, arrivals, session):
                             "predicted_time": last_predicted_time,
                             "delay": delay.total_seconds()
                         })
+
+                        insert_into_database()
 
                         last_stop_name = prediction.get("stpnm")
                         last_stop_id = prediction.get("stpid") 
@@ -189,6 +193,8 @@ def poll_api(vid, arrivals, session):
                                                 "delay": delay.total_seconds()
                                             })
 
+                                            insert_into_database()
+
                                             print("inserted")
                                             print(len(arrivals))
             
@@ -207,6 +213,8 @@ def poll_api(vid, arrivals, session):
                                                 "predicted_time": last_predicted_time,
                                                 "delay": delay.total_seconds()
                                             })
+
+                                            insert_into_database()
 
                                             last_stop_name = prediction.get("stpnm")
                                             last_stop_id = prediction.get("stpid") 
@@ -265,8 +273,6 @@ def poll_api(vid, arrivals, session):
             		                		
 # start polling
 if __name__ == "__main__":
-    # session = create_session()
-
     while True:
         try:
             session = create_session()
@@ -363,9 +369,11 @@ if __name__ == "__main__":
 
         for arrival in arrivals_without_duplicates:
             if arrival.get("route") == "SY76":
-                insert_into_database(arrival.get("stop_name"), arrival.get("stop_id"), arrival.get("route"), arrival.get("direction"), arrival.get("predicted_time"), arrival.get("delay"))
+                insert_into_database(arrival.get("stop_name"), arrival.get("stop_id"), arrival.get("route"), arrival.get("direction"), arrival.get("predicted_time"), arrival.get("delay"), "Delays")
 
         print(len(arrivals_without_duplicates))
         print("inserted into database")
+
+        session.close()
 
         time.sleep(5) # for the outer while True
