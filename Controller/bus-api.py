@@ -1,10 +1,12 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 import mysql.connector
 from mysql.connector import Error
 from functools import wraps
 import os
 
-app = Flask(__name__)
+app = Flask(__name__,
+            template_folder='../templates',
+            static_folder='../static')
 #DB connection details and functions
 DATABASE = {
     "host": "pi.cs.oswego.edu",
@@ -128,7 +130,7 @@ def get_prediction(conn, input):
     return jsonify({"error": "No API Endpoint"}), 500
 
 @app.route('/')
-def index():
+def dev_index():
     """API root"""
     return jsonify({
         "name": "Bus System API",
@@ -140,6 +142,60 @@ def index():
             "prediction": "/prediction/{input}"
         }
     })
+
+
+@app.route('/frontend/index.html')
+def index():
+    return render_template('index.html')
+
+@app.route('/frontend/contact.html')
+def contact():
+    return render_template('contact.html')
+
+@app.route('/frontend/faq.html')
+def faq():
+    return render_template('faq.html')
+
+@app.route('/frontend/time_operation.html')
+def time_operation():
+    return render_template('time_operation.html')
+
+@app.route('/frontend/oswego_team.html')
+def oswego_team():
+    return render_template('oswego_team.html')
+
+@app.route('/frontend/how_to_ride.html')
+def how_to_ride():
+    return render_template('how_to_ride.html')
+
+@app.route('/frontend/passes.html')
+def passes():
+    return render_template('passes.html')
+
+@app.route('/frontend/updates.html')
+def updates():
+    return render_template('updates.html')
+
+@app.route('/frontend/routes.html')
+def routes():
+    return render_template('routes.html')
+
+@app.route('/frontend/plan-your-trip.html')
+def plan_your_trip():
+    return render_template('plan-your-trip.html')
+
+@app.route('/frontend/fares.html')
+def fares():
+    return render_template('fares.html')
+
+@app.route('/frontend/news.html')
+def news():
+    return render_template('news.html')
+
+@app.route('/frontend/alerts.html')
+def alerts():
+    return render_template('alerts.html')
+
 
 if __name__ == '__main__':
     #Server configuration
