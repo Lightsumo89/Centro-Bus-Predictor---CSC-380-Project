@@ -44,6 +44,20 @@ def create_session():
     return session
 
 
+def truncate_table():
+    db = mysql.connector.connect(**DATABASE)
+    cursor = db.cursor()
+
+    truncate_query = "TRUNCATE TABLE LastArrival"
+
+    cursor.execute(truncate_query)
+
+    db.commit()
+
+    cursor.close()
+    db.close()
+
+
 def insert_into_database(stop_name, stop_id, route, direction, arrive_time, delay, table_name):
     db = mysql.connector.connect(**DATABASE)
     cursor = db.cursor()
@@ -64,9 +78,9 @@ def poll_api(vid, arrivals, session):
         data_2 = response_2.json()
 
         if "prd" in data_2.get("bustime-response", {}): # not an error
-            if prediction.get("rt") == "SY76":
-                prediction = data_2.get("bustime-response", {}).get("prd", [])[0] # set the initial fields
+            prediction = data_2.get("bustime-response", {}).get("prd", [])[0] # set the initial fields
 
+            if prediction.get("rt") == "SY76":
                 last_stop_name = prediction.get("stpnm")
                 last_stop_id = prediction.get("stpid") 
                 last_route = prediction.get("rt")
@@ -117,7 +131,11 @@ def poll_api(vid, arrivals, session):
                             "delay": delay.total_seconds()
                         })
 
-                        insert_into_database()
+                        truncate_table()
+
+                        insert_into_database(last_stop_name, last_stop_id, last_route, last_direction, last_predicted_time, delay.total_seconds(), "LastArrival")
+
+                        print(f"last stop name: {last_stop_name}, last stop id: {last_stop_id}, last predicted date: {last_date}, last predicted time: {last_time}, last route: {last_route}, last direction: {last_direction}, delay: {delay.total_seconds()}")
 
                         last_stop_name = prediction.get("stpnm")
                         last_stop_id = prediction.get("stpid") 
@@ -148,7 +166,11 @@ def poll_api(vid, arrivals, session):
                             "delay": delay.total_seconds()
                         })
 
-                        insert_into_database()
+                        truncate_table()
+
+                        insert_into_database(last_stop_name, last_stop_id, last_route, last_direction, last_predicted_time, delay.total_seconds(), "LastArrival")
+
+                        print(f"last stop name: {last_stop_name}, last stop id: {last_stop_id}, last predicted date: {last_date}, last predicted time: {last_time}, last route: {last_route}, last direction: {last_direction}, delay: {delay.total_seconds()}")
 
                         last_stop_name = prediction.get("stpnm")
                         last_stop_id = prediction.get("stpid") 
@@ -179,12 +201,12 @@ def poll_api(vid, arrivals, session):
  
                                     # last_stop_id is the final stop on SY76 for the current bus
                                     if last_stop_id != prediction.get("stpid"): # arrived to a stop
-                                        if final_stop != prediction.get("stpid") and first_stop_different_route != prediction.get("stpid"):
+                                        if final_stop != prediction.get("stpid") and first_stop_different_route != prediction.get("stpid"): # arrived to the final stop
                                             arrive_time = datetime.now()
 			
                                             delay = arrive_time - last_predicted_time 
 
-                                            arrivals.append({ # change so also appending the first_stop_different_route, not currently adding duplicates
+                                            arrivals.append({ 
                                                 "stop_name": last_stop_name,
                                                 "stop_id": last_stop_id,
                                                 "route": last_route,
@@ -193,7 +215,11 @@ def poll_api(vid, arrivals, session):
                                                 "delay": delay.total_seconds()
                                             })
 
-                                            insert_into_database()
+                                            truncate_table()
+
+                                            insert_into_database(last_stop_name, last_stop_if, last_route, last_direction, last_predicted_time, delay.total_seconds(), "LastArrival")
+
+                                            print(f"last stop name: {last_stop_name}, last stop id: {last_stop_id}, last predicted date: {last_date}, last predicted time: {last_time}, last route: {last_route}, last direction: {last_direction}, delay: {delay.total_seconds()}")
 
                                             print("inserted")
                                             print(len(arrivals))
@@ -201,7 +227,7 @@ def poll_api(vid, arrivals, session):
                                             return
 
                                         else: # either predicting final_stop or first_stop_different_route
-                                            arrive_time = datetime.now() # arrived to the final stop (check duplicates below)
+                                            arrive_time = datetime.now() 
 			
                                             delay = arrive_time - last_predicted_time
 
@@ -214,7 +240,11 @@ def poll_api(vid, arrivals, session):
                                                 "delay": delay.total_seconds()
                                             })
 
-                                            insert_into_database()
+                                            truncate_table()
+
+                                            insert_into_database(last_stop_name, last_stop_id, last_route, last_direction, last_predicted_time, delay.total_seconds(), "LastArrival")
+
+                                            print(f"last stop name: {last_stop_name}, last stop id: {last_stop_id}, last predicted date: {last_date}, last predicted time: {last_time}, last route: {last_route}, last direction: {last_direction}, delay: {delay.total_seconds()}")
 
                                             last_stop_name = prediction.get("stpnm")
                                             last_stop_id = prediction.get("stpid") 
@@ -274,6 +304,14 @@ def poll_api(vid, arrivals, session):
 # start polling
 if __name__ == "__main__":
     while True:
+        if datetime.now().hour >= 7:
+            pass
+
+        else:
+            time.sleep(5)
+
+            continue
+            
         try:
             session = create_session()
 
@@ -282,7 +320,7 @@ if __name__ == "__main__":
 
             continue
 
-    # 1.  
+        # 1.  
         while True:
             vid = ""
 
