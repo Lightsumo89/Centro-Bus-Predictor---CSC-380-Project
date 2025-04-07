@@ -13,13 +13,13 @@ DATABASE = {
     "database": "CSC380_25S_TeamD" 
 }
 
-API_URL_1 = "https://bus-time.centro.org/bustime/api/v3/getvehicles?key=PUZXP7CxWkPaWnvDWdacgiS4M&rt=SY76&format=json"
+API_URL_1 = "https://bus-time.centro.org/bustime/api/v3/getvehicles?key=PUZXP7CxWkPaWnvDWdacgiS4M&rt=SY76&rptidatafeed&format=json"
 
 API_URL_2_before = "https://bus-time.centro.org/bustime/api/v3/getpredictions?key=PUZXP7CxWkPaWnvDWdacgiS4M&vid="
 
 # in between is vid 
 
-API_URL_2_after = "&tmres=s&rptidatafeed&top=1&format=json"
+API_URL_2_after = "&tmres=s&top=1&rptidatafeed&format=json"
 
 # change time.sleep to 5 
 
@@ -271,8 +271,6 @@ def poll_api(vid, arrivals, session):
 
                                         print("did not arrive yet")	
 
-                                    time.sleep(5)
-
                                 else: # it is an error or empty
                                     return   
 
@@ -337,12 +335,12 @@ if __name__ == "__main__":
 
                     time.sleep(5)
 
-                break
+                    break
 
             except requests.exceptions.RequestException:
                 time.sleep(5)
  
-                continue
+                # continue
 
         # 2.
         arrivals = []
@@ -415,3 +413,4 @@ if __name__ == "__main__":
         session.close()
 
         time.sleep(5) # for the outer while True
+
