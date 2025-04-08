@@ -13,13 +13,13 @@ DATABASE = {
     "database": "CSC380_25S_TeamD" 
 }
 
-API_URL_1 = "https://bus-time.centro.org/bustime/api/v3/getvehicles?key=PUZXP7CxWkPaWnvDWdacgiS4M&rt=SY76&rptidatafeed&format=json"
+API_URL_1 = "https://bus-time.centro.org/bustime/api/v3/getvehicles?key=PUZXP7CxWkPaWnvDWdacgiS4M&rt=SY76&rtpidatafeed&format=json"
 
 API_URL_2_before = "https://bus-time.centro.org/bustime/api/v3/getpredictions?key=PUZXP7CxWkPaWnvDWdacgiS4M&vid="
 
 # in between is vid 
 
-API_URL_2_after = "&tmres=s&top=1&rptidatafeed&format=json"
+API_URL_2_after = "&tmres=s&top=1&rtpidatafeed&format=json"
 
 # change time.sleep to 5 
 
@@ -58,7 +58,7 @@ def truncate_table():
     db.close()
 
 
-def insert_into_database(stop_name, stop_id, route, direction, arrive_time, delay, table_name):
+def insert_into_table(stop_name, stop_id, route, direction, arrive_time, delay, table_name):
     db = mysql.connector.connect(**DATABASE)
     cursor = db.cursor()
 
