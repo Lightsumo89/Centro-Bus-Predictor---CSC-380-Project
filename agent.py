@@ -133,7 +133,7 @@ def poll_api(vid, arrivals, session):
 
                         truncate_table()
 
-                        insert_into_database(last_stop_name, last_stop_id, last_route, last_direction, last_predicted_time, delay.total_seconds(), "LastArrival")
+                        insert_into_table(last_stop_name, last_stop_id, last_route, last_direction, last_predicted_time, delay.total_seconds(), "LastArrival")
 
                         print(f"last stop name: {last_stop_name}, last stop id: {last_stop_id}, last predicted date: {last_date}, last predicted time: {last_time}, last route: {last_route}, last direction: {last_direction}, delay: {delay.total_seconds()}")
 
@@ -168,7 +168,7 @@ def poll_api(vid, arrivals, session):
 
                         truncate_table()
 
-                        insert_into_database(last_stop_name, last_stop_id, last_route, last_direction, last_predicted_time, delay.total_seconds(), "LastArrival")
+                        insert_into_table(last_stop_name, last_stop_id, last_route, last_direction, last_predicted_time, delay.total_seconds(), "LastArrival")
 
                         print(f"last stop name: {last_stop_name}, last stop id: {last_stop_id}, last predicted date: {last_date}, last predicted time: {last_time}, last route: {last_route}, last direction: {last_direction}, delay: {delay.total_seconds()}")
 
@@ -236,7 +236,7 @@ def poll_api(vid, arrivals, session):
 
                                             truncate_table()
 
-                                            insert_into_database(last_stop_name, last_stop_id, last_route, last_direction, last_predicted_time, delay.total_seconds(), "LastArrival")
+                                            insert_into_table(last_stop_name, last_stop_id, last_route, last_direction, last_predicted_time, delay.total_seconds(), "LastArrival")
 
                                             print(f"last stop name: {last_stop_name}, last stop id: {last_stop_id}, last predicted date: {last_date}, last predicted time: {last_time}, last route: {last_route}, last direction: {last_direction}, delay: {delay.total_seconds()}")
 
@@ -417,7 +417,7 @@ if __name__ == "__main__":
 
         for arrival in arrivals_without_duplicates:
             if arrival.get("route") == "SY76":
-                insert_into_database(arrival.get("stop_name"), arrival.get("stop_id"), arrival.get("route"), arrival.get("direction"), arrival.get("predicted_time"), arrival.get("delay"), "Delays")
+                insert_into_table(arrival.get("stop_name"), arrival.get("stop_id"), arrival.get("route"), arrival.get("direction"), arrival.get("predicted_time"), arrival.get("delay"), "Delays")
 
         print(len(arrivals_without_duplicates))
         print("inserted into database")
