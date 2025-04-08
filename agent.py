@@ -215,12 +215,6 @@ def poll_api(vid, arrivals, session):
                                                 "delay": delay.total_seconds()
                                             })
 
-                                            truncate_table()
-
-                                            insert_into_database(last_stop_name, last_stop_if, last_route, last_direction, last_predicted_time, delay.total_seconds(), "LastArrival")
-
-                                            print(f"last stop name: {last_stop_name}, last stop id: {last_stop_id}, last predicted date: {last_date}, last predicted time: {last_time}, last route: {last_route}, last direction: {last_direction}, delay: {delay.total_seconds()}")
-
                                             print("inserted")
                                             print(len(arrivals))
             
@@ -296,7 +290,66 @@ def poll_api(vid, arrivals, session):
             time.sleep(5)
 
         except requests.exceptions.RequestException:
-            return   
+            return  
+
+
+def remove_duplicates(arrivals):
+    added_arrival_stop_ids = set()
+
+    arrivals_without_duplicates = []
+
+    reversed_arrivals = list(reversed(arrivals))  
+
+    ctr = 0
+
+    for i in range(len(reversed_arrivals)):
+        if i != len(reversed_arrivals) - 1:
+            if reversed_arrivals[i].get("direction") != reversed_arrivals[i + 1].get("direction"): # duplicates at changing direction
+                ++ctr
+
+                if ctr == 1:
+                    if reversed_arrivals[i].get("stop_id") not in added_arrival_stop_ids:
+                        added_arrival_stop_ids.add(reversed_arrivals[i].get("stop_id"))
+
+                        arrivals_without_duplicates.append(reversed_arrivals[i])
+
+                elif ctr == 2:
+                    added_arrival_stop_ids.add(reversed_arrivals[i].get("stop_id"))
+
+                    arrivals_without_duplicates.append(reversed_arrivals[i])
+
+            elif reversed_arrivals[i].get("direction") == reversed_arrivals[i + 1].get("direction") and ctr > 0: # no more duplicates at changing direction
+                added_arrival_stop_ids.clear()
+
+                if ctr == 1: # no duplicates at changing direction
+                    added_arrival_stop_ids.add(reversed_arrivals[i].get("stop_id"))
+
+                    arrivals_without_duplicates.append(reversed_arrivals[i])
+                
+                ctr = 0
+
+            else: # direction is not changing
+                if reversed_arrivals[i].get("stop_id") not in added_arrival_stop_ids:
+                    added_arrival_stop_ids.add(reversed_arrivals[i].get("stop_id"))
+
+                    arrivals_without_duplicates.append(reversed_arrivals[i])
+
+        else: # if same direction, check if it is a duplicate, if different direction, just add it
+            if ctr > 0: # changing direction
+                if ctr == 1: 
+                    added_arrival_stop_ids.add(reversed_arrivals[i].get("stop_id"))
+
+                    arrivals_without_duplicates.append(reversed_arrivals[i])
+
+            else: # same direction
+                if reversed_arrivals[i].get("stop_id") not in added_arrival_stop_ids:
+                    added_arrival_stop_ids.add(reversed_arrivals[i].get("stop_id"))
+
+                    arrivals_without_duplicates.append(reversed_arrivals[i]) 
+
+    arrivals_without_duplicates.reverse()
+
+    return arrivals_without_duplicates
 
             		                		
 # start polling
@@ -306,6 +359,8 @@ if __name__ == "__main__":
             pass
 
         else:
+            print("not 7 or after")
+ 
             time.sleep(5)
 
             continue
@@ -337,6 +392,11 @@ if __name__ == "__main__":
 
                     break
 
+                else:
+                    time.sleep(5)
+
+                    print("no bus")
+
             except requests.exceptions.RequestException:
                 time.sleep(5)
  
@@ -349,55 +409,7 @@ if __name__ == "__main__":
 
         # 3.
         # remove the duplicates
-        added_arrival_stop_ids = set()
-
-        arrivals_without_duplicates = []
-
-        reversed_arrivals = list(reversed(arrivals))  
-
-        d = False
-
-        for i in range(len(reversed_arrivals)):
-            if i != len(reversed_arrivals) - 1:
-                if reversed_arrivals[i].get("direction") != reversed_arrivals[i + 1].get("direction"): # duplicates at changing direction
-                    d = True
-
-                    if reversed_arrivals[i].get("stop_id") not in added_arrival_stop_ids:
-                        added_arrival_stop_ids.add(reversed_arrivals[i].get("stop_id"))
-
-                        arrivals_without_duplicates.append(reversed_arrivals[i])
-
-                elif reversed_arrivals[i].get("direction") == reversed_arrivals[i + 1].get("direction") and d: # no more duplicates at changing direction
-                    d = False
-
-                    if reversed_arrivals[i].get("stop_id") not in added_arrival_stop_ids:
-                        added_arrival_stop_ids.add(reversed_arrivals[i].get("stop_id"))
-
-                        arrivals_without_duplicates.append(reversed_arrivals[i])
- 
-                    added_arrival_stop_ids.clear()
-
-                else: # direction is not changing
-                    d = False # unnecessary
-
-                    if reversed_arrivals[i].get("stop_id") not in added_arrival_stop_ids:
-                        added_arrival_stop_ids.add(reversed_arrivals[i].get("stop_id"))
-
-                        arrivals_without_duplicates.append(reversed_arrivals[i])
-
-            else: # if same direction, check if it is a duplicate, if different direction, just add it
-                if d:
-                    added_arrival_stop_ids.add(reversed_arrivals[i].get("stop_id"))
-
-                    arrivals_without_duplicates.append(reversed_arrivals[i]) 
-
-                else:
-                    if reversed_arrivals[i].get("stop_id") not in added_arrival_stop_ids:
-                        added_arrival_stop_ids.add(reversed_arrivals[i].get("stop_id"))
-
-                        arrivals_without_duplicates.append(reversed_arrivals[i]) 
-
-        arrivals_without_duplicates.reverse()
+        arrivals_without_duplicates = remove_duplicates(arrivals)
 
         print(arrivals_without_duplicates)
             
@@ -413,4 +425,3 @@ if __name__ == "__main__":
         session.close()
 
         time.sleep(5) # for the outer while True
-
