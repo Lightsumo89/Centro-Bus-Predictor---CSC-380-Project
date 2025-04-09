@@ -1,0 +1,14 @@
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+
+import App from "mapdata/map.js";
+
+const rootElement = document.getElementById("root");
+const root = createRoot(rootElement);
+
+root.render(
+  <StrictMode>
+    <h1>React Leaflet Tutorial</h1>
+    <App />
+  </StrictMode>
+);
