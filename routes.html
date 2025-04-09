@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Centro Bus Stops Map</title>
+    <style>
+        .dropdown-container {
+            margin-bottom: 20px;
+        }
+
+        .dropdown-container select {
+            padding: 10px;
+            margin-right: 15px;
+            font-size: 16px;
+        }
+
+        iframe {
+            width: 100%;
+            height: 600px;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Centro Bus Stops Map</h1>
+
+    <form action="/generate_map" method="POST">
+        <div class="dropdown-container">
+            <select name="route" id="route-select">
+                <option value="">Select Bus Route</option>
+                <option value="Walmart Via 104">Walmart via 104</option>
+                <option value="Price Chopper">Price Chopper</option>
+                <option value="Blue Route">Blue route</option>
+                <option value="Green Route">Green route</option>
+                <option value="Oswego - Syracuse">Oswego-Syracuse</option>
+                <option value="SY76">SY76</option>
+            </select>
+
+            <select name="direction" id="direction-type-select">
+                <option value="">Select Direction</option>
+                <option value="">To Campus</option>
+                <option value="">From Campus</option>
+            </select>
+
+            <select name="stop" id="stop-select">
+                <option value="">Select Stop</option>
+            </select>
+
+            <button type="submit">Generate Map</button>
+        </div>
+    </form>
+
+    <iframe id="map" src="{{ url_for('static', filename='bus_stops_map.html') }}" ></iframe>
+
+</body>
+</html>
