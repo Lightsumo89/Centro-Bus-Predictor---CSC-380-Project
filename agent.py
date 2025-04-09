@@ -355,11 +355,11 @@ def remove_duplicates(arrivals):
 # start polling
 if __name__ == "__main__":
     while True:
-        if datetime.now().hour >= 7:
+        if datetime.now().hour >= 10:
             pass
 
         else:
-            print("not 7 or after")
+            print("not 10 or after")
  
             time.sleep(5)
 
