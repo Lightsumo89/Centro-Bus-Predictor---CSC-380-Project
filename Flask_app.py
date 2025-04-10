@@ -12,6 +12,40 @@ app = Flask(__name__)
 def home():
     return render_template('routes.html', map_file="static/bus_stops_map.html")
 
+def predict_delay_B(known_delay_A):
+    """Predict delay_B given delay_A using the trained HMM."""
+    # Construct a partial observation (only delay_A is known)
+    means = model.means_  # Get mean [delay_A, delay_B] for each state
+    covariances = model.covars_  # Get covariance matrices
+
+    # Find the most likely state given delay_A
+    best_state = np.argmin(np.abs(means[:, 0] - known_delay_A))  # Closest state in delay_A
+
+    # Predict delay_B based on that state's mean
+    predicted_delay_B = means[best_state, 1]
+
+    return predicted_delay_B
+
+def probabilistic_predict_delay_B(given_delay_A):
+    """Predict delay_B using a probabilistic approach based on state likelihoods."""
+    means = model.means_  # state-wise [delay_A, delay_B] means
+    covars = model.covars_  # state-wise covariance matrices
+    priors = model.startprob_  # initial state probabilities
+
+    # compute P(delay_A | state) using the Gaussian likelihood
+    state_probs = np.array([
+        multivariate_normal.pdf(known_delay_A, mean=means[s, 0], cov=covars[s, 0, 0]) * priors[s]
+        for s in range(num_states)
+    ])
+    
+    # normalize to get P(state | delay_A)
+    state_probs /= np.sum(state_probs)
+
+    # Compute weighted prediction for delay_B
+    predicted_delay_B = np.sum(state_probs * means[:, 1])
+    
+    return predicted_delay_B
+
 # Prediction endpoint
 @app.route('/prediction/<stop>/<direction>/<route>', methods=['GET'])
 def get_prediction(stop: str, direction: str, route: str):
@@ -20,7 +54,15 @@ def get_prediction(stop: str, direction: str, route: str):
     data = np.array([
     [1.0, 2.0], [1.3, 2.1], [1.2, 2.0], [1.7, 2.4], [1.4, 2.2], [2.0, 3.1], [1.3, 2.0], [2.1, 3.2], [2.4, 3.2], [2.2, 3.0], [1.9, 2.5], [1.5, 2.4], [2.3, 3.2], [2.5, 3.5], [1.6, 2.7], [1.3, 2.4],
     [1.4, 2.2], [2.3, 3.4], [2.7, 3.4], [2.1, 3.0], [2.3, 3.0], [2.2, 2.9], [1.4, 2.0], [1.3, 2.1] 
-])
+    ])
+
+    # Reshape for HMM training
+    X = data.reshape(-1, 2)  # each row is [delay_A, delay_B]
+
+    # Define and train the HMM
+    num_states = 2  
+    model = hmm.GaussianHMM(n_components=num_states, covariance_type="full", n_iter=100)
+    model.fit(X)
 
 
     
@@ -67,52 +109,7 @@ def generate_map():
     return render_template('routes.html', map_file="static/bus_stops_map.html")
 
 
-# 
-# Example sequence of [delay_A, delay_B] pairs
 
-
-# Reshape for HMM training
-X = data.reshape(-1, 2)  # each row is [delay_A, delay_B]
-
-# Define and train the HMM
-num_states = 2  
-model = hmm.GaussianHMM(n_components=num_states, covariance_type="full", n_iter=100)
-model.fit(X)
-
-# Function to predict delay_B given a known delay_A
-def predict_delay_B(known_delay_A):
-    """Predict delay_B given delay_A using the trained HMM."""
-    # Construct a partial observation (only delay_A is known)
-    means = model.means_  # Get mean [delay_A, delay_B] for each state
-    covariances = model.covars_  # Get covariance matrices
-
-    # Find the most likely state given delay_A
-    best_state = np.argmin(np.abs(means[:, 0] - known_delay_A))  # Closest state in delay_A
-
-    # Predict delay_B based on that state's mean
-    predicted_delay_B = means[best_state, 1]
-
-    return predicted_delay_B
-
-def probabilistic_predict_delay_B(known_delay_A):
-    """Predict delay_B using a probabilistic approach based on state likelihoods."""
-    means = model.means_  # State-wise [delay_A, delay_B] means
-    covars = model.covars_  # State-wise covariance matrices
-    priors = model.startprob_  # Initial state probabilities
-
-    # Compute P(delay_A | state) using the Gaussian likelihood
-    state_probs = np.array([
-        multivariate_normal.pdf(known_delay_A, mean=means[s, 0], cov=covars[s, 0, 0]) * priors[s]
-        for s in range(num_states)
-    ])
-    
-    # Normalize to get P(state | delay_A)
-    state_probs /= np.sum(state_probs)
-
-    # Compute weighted prediction for delay_B
-    predicted_delay_B = np.sum(state_probs * means[:, 1])
-    
-    return predicted_delay_B
 
 
 
