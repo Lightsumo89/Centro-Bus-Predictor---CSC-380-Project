@@ -12,9 +12,26 @@ app = Flask(__name__)
 def home():
     return render_template('routes.html', map_file="static/bus_stops_map.html")
 
-def predict_delay_B(known_delay_A):
-    """Predict delay_B given delay_A using the trained HMM."""
-    # Construct a partial observation (only delay_A is known)
+def get_delay_A():
+    # get delay from LastArrival 
+
+def get_data(stop, route, direction):
+    # select rows from database and convert to numpy array
+
+    return data
+
+def predict_delay_B(given_delay_A, data):
+    # reshape for HMM training
+    X = data.reshape(-1, 2)  # each row is [delay_A, delay_B]
+
+    # define and train the HMM
+    num_states = 2  
+    model = hmm.GaussianHMM(n_components=num_states, covariance_type="full", n_iter=100)
+    model.fit(X)
+    
+    # predict delay_B given delay_A using the trained HMM.
+    
+    # construct a partial observation (only delay_A is known)
     means = model.means_  # Get mean [delay_A, delay_B] for each state
     covariances = model.covars_  # Get covariance matrices
 
@@ -26,15 +43,24 @@ def predict_delay_B(known_delay_A):
 
     return predicted_delay_B
 
-def probabilistic_predict_delay_B(given_delay_A):
-    """Predict delay_B using a probabilistic approach based on state likelihoods."""
+
+def probabilistic_predict_delay_B(given_delay_A, data):
+    # Reshape for HMM training
+    X = data.reshape(-1, 2)  # each row is [delay_A, delay_B]
+
+    # Define and train the HMM
+    num_states = 2  
+    model = hmm.GaussianHMM(n_components=num_states, covariance_type="full", n_iter=100)
+    model.fit(X)
+    
+    # predict delay_B using a probabilistic approach based on state likelihoods.
     means = model.means_  # state-wise [delay_A, delay_B] means
     covars = model.covars_  # state-wise covariance matrices
     priors = model.startprob_  # initial state probabilities
 
     # compute P(delay_A | state) using the Gaussian likelihood
     state_probs = np.array([
-        multivariate_normal.pdf(known_delay_A, mean=means[s, 0], cov=covars[s, 0, 0]) * priors[s]
+        multivariate_normal.pdf(given_delay_A, mean=means[s, 0], cov=covars[s, 0, 0]) * priors[s]
         for s in range(num_states)
     ])
     
@@ -46,6 +72,7 @@ def probabilistic_predict_delay_B(given_delay_A):
     
     return predicted_delay_B
 
+
 # Prediction endpoint
 @app.route('/prediction/<stop>/<direction>/<route>', methods=['GET'])
 def get_prediction(stop: str, direction: str, route: str):
@@ -56,13 +83,13 @@ def get_prediction(stop: str, direction: str, route: str):
     [1.4, 2.2], [2.3, 3.4], [2.7, 3.4], [2.1, 3.0], [2.3, 3.0], [2.2, 2.9], [1.4, 2.0], [1.3, 2.1] 
     ])
 
-    # Reshape for HMM training
-    X = data.reshape(-1, 2)  # each row is [delay_A, delay_B]
+    data = get_data(stop, route, direction)
 
-    # Define and train the HMM
-    num_states = 2  
-    model = hmm.GaussianHMM(n_components=num_states, covariance_type="full", n_iter=100)
-    model.fit(X)
+    given_delay_A = 
+
+    predicted_delay_B = predict_delay_B(given_delay_A, data)
+
+
 
 
     
@@ -84,7 +111,7 @@ def generate_map():
 
     df.columns = df.columns.str.strip()
 
-    map_center = [43.455, -76.532]  #Oswego NY
+    map_center = [43.455, -76.532]  # Oswego, NY
     bus_map = folium.Map(location=map_center, zoom_start=13)
 
     for index, row in df.iterrows():
