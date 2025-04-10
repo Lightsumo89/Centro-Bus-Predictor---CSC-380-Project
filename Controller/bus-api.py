@@ -1,135 +1,41 @@
-from flask import Flask, request, jsonify
-import mysql.connector
-from mysql.connector import Error
-from functools import wraps
+from flask import Flask, request, jsonify, render_template
 import os
+from database import db_connection_required, get_all_stops, get_all_routes, get_all_buses
 
-app = Flask(__name__)
-#DB connection details and functions
-DATABASE = {
-    "host": "pi.cs.oswego.edu",
-    "user": "CSC380_25S_TeamD",
-    "password": "csc380_25s",
-    "database": "CSC380_25S_TeamD"
-}
+app = Flask(__name__,
+            template_folder='../templates',
+            static_folder='../static')
 
-def get_db_connection():
-    try:
-        connection = mysql.connector.connect(**DATABASE)
-        return connection
-    except Error as e:
-        print(f"Error connecting to MySQL: {e}")
-        return None
-
-def db_connection_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        conn = get_db_connection()
-        if not conn:
-            return jsonify({"error": "Database connection failed"}), 500
-        
-        try:
-            result = f(conn, *args, **kwargs)
-            return result
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
-        finally:
-            conn.close()
-    
-    return decorated_function
-
-#API Endpoints
+# API Endpoints
 @app.route('/api/stops', methods=['GET'])
 @db_connection_required
 def get_stops(conn):
     route_id = request.args.get('route_id')
-    
-    cursor = conn.cursor(dictionary=True)
-    
-    if route_id:
-        cursor.execute("""
-            SELECT s.stop_id, s.stop_name 
-            FROM Stop s
-            JOIN Bus b ON s.stop_id = b.current_stop_id
-            WHERE b.route_id = %s
-            ORDER BY s.stop_name
-        """, (route_id,))
-    else:
-        cursor.execute("SELECT stop_id, stop_name FROM Stop ORDER BY stop_name")
-    
-    stops = cursor.fetchall()
-    cursor.close()
-    
+    stops = get_all_stops(conn, route_id)
     return jsonify(stops)
 
 @app.route('/api/routes', methods=['GET'])
 @db_connection_required
 def get_routes(conn):
-    """Get all routes or filter by stop_id if provided"""
     stop_id = request.args.get('stop_id')
-    
-    cursor = conn.cursor(dictionary=True)
-    
-    if stop_id:
-        cursor.execute("""
-            SELECT r.route_id, r.route_name 
-            FROM Route r
-            JOIN Bus b ON r.route_id = b.route_id
-            WHERE b.current_stop_id = %s
-            ORDER BY r.route_name
-        """, (stop_id,))
-    else:
-        cursor.execute("SELECT route_id, route_name FROM Route ORDER BY route_name")
-    
-    routes = cursor.fetchall()
-    cursor.close()
-    
+    routes = get_all_routes(conn, stop_id)
     return jsonify(routes)
-
 
 @app.route('/api/buses', methods=['GET'])
 @db_connection_required
 def get_buses(conn):
-    """Get all buses or filter by route_id or stop_id if provided"""
     route_id = request.args.get('route_id')
     stop_id = request.args.get('stop_id')
-
-    cursor = conn.cursor(dictionary=True)
-
-    if route_id and stop_id:
-        cursor.execute("""
-            SELECT vehicle_id, pattern_id, route_id
-            FROM Bus 
-            WHERE route_id = %s
-        """, (route_id,))
-    elif route_id:
-        cursor.execute("""
-            SELECT vehicle_id, pattern_id, route_id
-            FROM Bus 
-            WHERE route_id = %s
-        """, (route_id,))
-    elif stop_id:
-        cursor.execute("SELECT vehicle_id, pattern_id, route_id FROM Bus")
-    else:
-        cursor.execute("SELECT vehicle_id, pattern_id, route_id FROM Bus")
-
-    buses = cursor.fetchall()
-    cursor.close()
-
+    buses = get_all_buses(conn, route_id, stop_id)
     return jsonify(buses)
 
 @app.route('/prediction/<input>', methods=['GET'])
 @db_connection_required
 def get_prediction(conn, input):
-    """
-    Get bus arrival predictions for the given input parameter
-    Input could be a stop_id, route_id, and/or bus ID
-    """
     return jsonify({"error": "No API Endpoint"}), 500
 
 @app.route('/')
-def index():
-    """API root"""
+def dev_index():
     return jsonify({
         "name": "Bus System API",
         "version": "1.0",
@@ -140,6 +46,60 @@ def index():
             "prediction": "/prediction/{input}"
         }
     })
+
+
+@app.route('/frontend/index.html')
+def index():
+    return render_template('index.html')
+
+@app.route('/frontend/contact.html')
+def contact():
+    return render_template('contact.html')
+
+@app.route('/frontend/faq.html')
+def faq():
+    return render_template('faq.html')
+
+@app.route('/frontend/time_operation.html')
+def time_operation():
+    return render_template('time_operation.html')
+
+@app.route('/frontend/oswego_team.html')
+def oswego_team():
+    return render_template('oswego_team.html')
+
+@app.route('/frontend/how_to_ride.html')
+def how_to_ride():
+    return render_template('how_to_ride.html')
+
+@app.route('/frontend/passes.html')
+def passes():
+    return render_template('passes.html')
+
+@app.route('/frontend/updates.html')
+def updates():
+    return render_template('updates.html')
+
+@app.route('/frontend/routes.html')
+def routes():
+    return render_template('routes.html')
+
+@app.route('/frontend/plan-your-trip.html')
+def plan_your_trip():
+    return render_template('plan-your-trip.html')
+
+@app.route('/frontend/fares.html')
+def fares():
+    return render_template('fares.html')
+
+@app.route('/frontend/news.html')
+def news():
+    return render_template('news.html')
+
+@app.route('/frontend/alerts.html')
+def alerts():
+    return render_template('alerts.html')
+
 
 if __name__ == '__main__':
     #Server configuration

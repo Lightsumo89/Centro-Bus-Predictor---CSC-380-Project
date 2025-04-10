@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Centro - Public Transportation</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
   <header>
@@ -16,32 +16,33 @@
             <li class="dropdown-item">
               <button class="submenu-btn">ABOUT ▾</button>
               <ul class="nested-menu">
-                <li><a href="contact.html">Contact Us</a></li>
-                <li><a href="faq.html">FAQs</a></li>
-                <li><a href="time_operation.html">Hours of Operation</a></li>
-                <li><a href="oswego_team.html">OSWEGO Student Team</a></li>
+                <li><a href="{{ url_for('contact') }}">Contact Us</a></li>
+                <li><a href="{{ url_for('faq') }}">FAQs</a></li>
+                <li><a href="{{ url_for('time_operation') }}">Hours of Operation</a></li>
+                <li><a href="{{ url_for('oswego_team') }}">OSWEGO Student Team</a></li>
               </ul>
             </li>
             <li class="dropdown-item">
-              <a href="faq.html">FAQs</a>
+              <a href="{{ url_for('faq') }}">FAQs</a>
             </li>
             <li class="dropdown-item">
-              <a href="how_to_ride.html">HOW TO RIDE</a>
+              <a href="{{ url_for('how_to_ride') }}">HOW TO RIDE</a>
             </li>
             <li class="dropdown-item">
-              <a href="passes.html">PURCHASE</a>
+              <a href="{{ url_for('passes') }}">PURCHASE</a>
             </li>
             <li class="dropdown-item">
-              <a href="updates.html">News &amp; Events</a>
+              <a href="{{ url_for('updates') }}">News &amp; Events</a>
             </li>
             <li class="dropdown-item">
-              <a href="routes.html">ROUTES &amp; SCHEDULES</a>
+              <a href="{{ url_for('routes') }}">ROUTES &amp; SCHEDULES</a>
+            </li>
           </ul>
         </div>
       </div>
       <div class="logo-container">
-        <a href="index.html">
-          <img src="logo.jpg" alt="Centro Logo">
+        <a href="{{ url_for('index') }}">
+          <img src="{{ url_for('static', filename='logo.jpg') }}" alt="Centro Logo">
         </a>
       </div>
     </div>
@@ -51,16 +52,16 @@
     <section class="hero">
       <div class="hero-carousel">
         <div class="carousel-inner">
-          <div class="carousel-item active" style="background-image: url('images/image1.jpeg')"></div>
-          <div class="carousel-item" style="background-image: url('images/image2.jpg')"></div>
-          <div class="carousel-item" style="background-image: url('images/image3.jpg')"></div>
-          <div class="carousel-item" style="background-image: url('images/image4.jpg')"></div>
+          <div class="carousel-item active" style="background-image: url('{{ url_for('static', filename='images/image1.jpeg') }}')"></div>
+          <div class="carousel-item" style="background-image: url('{{ url_for('static', filename='images/image2.jpg') }}')"></div>
+          <div class="carousel-item" style="background-image: url('{{ url_for('static', filename='images/image3.jpg') }}')"></div>
+          <div class="carousel-item" style="background-image: url('{{ url_for('static', filename='images/image4.jpg') }}')"></div>
         </div>
       </div>
       <div class="hero-content">
         <h1>Plan Your Trip</h1>
         <p>Get real-time updates and navigate your journey with ease.</p>
-        <a href="plan-your-trip.html" class="cta-btn">Track Your Bus</a>
+        <a href="{{ url_for('plan_your_trip') }}" class="cta-btn">Track Your Bus</a>
       </div>
     </section>
 
@@ -68,24 +69,24 @@
       <div class="link-card">
         <h2>Routes &amp; Schedules</h2>
         <p>Find your bus route and check schedules instantly.</p>
-        <a href="routes.html">Learn More</a>
+        <a href="{{ url_for('routes') }}">Learn More</a>
       </div>
       <div class="link-card">
         <h2>Fares &amp; Passes</h2>
         <p>View current fares or purchase passes online.</p>
-        <a href="fares.html">Learn More</a>
+        <a href="{{ url_for('fares') }}">Learn More</a>
       </div>
       <div class="link-card">
         <h2>News &amp; Events</h2>
         <p>Stay updated with our latest news and upcoming events.</p>
-        <a href="news.html">Learn More</a>
+        <a href="{{ url_for('news') }}">Learn More</a>
       </div>
     </section>
 
     <section class="info-announcement">
       <h2>Service Alerts</h2>
       <p>Be aware of any service changes or delays.</p>
-      <a href="alerts.html">View Alerts</a>
+      <a href="{{ url_for('alerts') }}">View Alerts</a>
     </section>
   </main>
 
@@ -96,6 +97,6 @@
       </div>
     </div>
   </footer>
-  <script src="script.js"></script>
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>

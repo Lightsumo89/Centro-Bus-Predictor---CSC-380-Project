@@ -29,3 +29,6 @@ insert into RouteStops values('SY76', 17872);
 insert into RouteStops values('SY76', 18279);
 insert into RouteStops values('SY76', 2226);
 insert into RouteStops values('SY76', 2141);
+
+
+create table LastTime(vehicle_id int(5), stop_id int(5), route_id varchar(10), predict_time time(0), primary key(vehicle_id), foreign key(vehicle_id) references Bus(vehicle_id), foreign key(stop_id) references Stop(stop_id), foreign key(route_id) references Route(route_id));
