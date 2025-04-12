@@ -26,6 +26,16 @@ def get_data(stop, route, direction):
     # select rows from database and convert to numpy array
     select_query = "SELECT * FROM Delays WHERE StopID = %s AND Route = %s AND Direction = %s"
 
+    db = mysql.connector.connect(**DATABASE)
+    cursor = db.cursor()
+    
+    cursor.execute(select_query, (stop, route, direction))
+
+    db.commit()	
+ 
+    cursor.close()
+    db.close()
+
     
 
     return data
