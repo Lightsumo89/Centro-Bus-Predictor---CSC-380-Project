@@ -6,6 +6,13 @@ import numpy as np
 from hmmlearn import hmm
 from scipy.stats import multivariate_normal
 
+DATABASE = {
+    "host": "pi.cs.oswego.edu",
+    "user": "CSC380_25S_TeamD", 	
+    "password": "csc380_25s",
+    "database": "CSC380_25S_TeamD" 
+}
+
 app = Flask(__name__)
 
 @app.route('/')
