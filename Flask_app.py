@@ -12,11 +12,14 @@ app = Flask(__name__)
 def home():
     return render_template('routes.html', map_file="static/bus_stops_map.html")
 
-def get_delay_A():
+def get_delay_A(stop, route, direction):
     # get delay from LastArrival 
 
 def get_data(stop, route, direction):
     # select rows from database and convert to numpy array
+    select_query = "SELECT * FROM Delays WHERE StopID = %s AND Route = %s AND Direction = %s"
+
+    
 
     return data
 
@@ -75,8 +78,9 @@ def probabilistic_predict_delay_B(given_delay_A, data):
 
 # Prediction endpoint
 @app.route('/prediction/<stop>/<direction>/<route>', methods=['GET'])
-def get_prediction(stop: str, direction: str, route: str):
+def get_prediction(stop, route, direction):
     # select the right rows in the database and convert to numpy array
+    
 
     data = np.array([
     [1.0, 2.0], [1.3, 2.1], [1.2, 2.0], [1.7, 2.4], [1.4, 2.2], [2.0, 3.1], [1.3, 2.0], [2.1, 3.2], [2.4, 3.2], [2.2, 3.0], [1.9, 2.5], [1.5, 2.4], [2.3, 3.2], [2.5, 3.5], [1.6, 2.7], [1.3, 2.4],
@@ -99,9 +103,10 @@ def get_prediction(stop: str, direction: str, route: str):
 @app.route('/generate_map', methods=['POST'])
 def generate_map():
     # Retrieve user input from the form
+    stop = request.form.get('stop')
     route = request.form.get('route')
     direction = request.form.get('direction')
-    stop = request.form.get('stop')
+    
 
     
     
