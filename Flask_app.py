@@ -19,25 +19,45 @@ app = Flask(__name__)
 def home():
     return render_template('routes.html', map_file="static/bus_stops_map.html")
 
+def get_stop_A(stop, route, direction):
+    db = mysql.connector.connect(**DATABASE)
+    cursor = db.cursor()
+
+    select_query = "SELECT * FROM Delays WHERE StopID = %s AND Route = %s AND Direction = %s"
+
+    cursor.execute(select_query, (stop, route, direction))
+
+    row = cursor.fetchall()
+
+    stop_A = row[0] # get stop_id next
+
+    return stop_A
+    
+
 def get_delay_A(stop, route, direction):
     # get delay from LastArrival 
 
-def get_data(stop, route, direction):
-    # select rows from database and convert to numpy array
-    select_query = "SELECT * FROM Delays WHERE StopID = %s AND Route = %s AND Direction = %s"
-
+def get_data(stop_A, stop_B, route, direction): # stop_B is the inputted stop, stop_A is the last stop the bus arrived to
+    # select rows from database 
+    
     db = mysql.connector.connect(**DATABASE)
     cursor = db.cursor()
-    
-    cursor.execute(select_query, (stop, route, direction))
 
-    db.commit()	
+    select_query = "SELECT * FROM Delays WHERE StopID = %s AND Route = %s AND Direction = %s ORDER BY ArriveTime DESC"
+    
+    cursor.execute(select_query, (stop_A, route, direction))
+
+    rows_A = cursor.fetchall()
+
+    cursor.execute(select_query, (stop_B, route, direction))
+    
+    rows_B = cursor.fetchall()
  
     cursor.close()
     db.close()
 
+    # convert to numpy array of [delay_A, delay_B] pairs, need to appropriately match entries in rows_A and rows_B, especially if they contain a different number of entries
     
-
     return data
 
 def predict_delay_B(given_delay_A, data):
