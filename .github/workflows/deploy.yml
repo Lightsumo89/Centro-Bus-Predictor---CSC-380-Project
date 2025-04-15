@@ -21,25 +21,12 @@ jobs:
         python -m pip install --upgrade pip
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-    - name: Parse DEPLOY_CONFIG secret
-      id: parse_secret
-      run: |
-        # Split the DEPLOY_CONFIG secret into multiple environment variables
-        echo "${{ secrets.DEPLOY_CONFIG }}" | while IFS= read -r line; do
-          # Extract key-value pairs from the secret
-          echo "$line" | sed -E 's/([A-Za-z0-9_]+)=([^\n]+)$/\1=\2/' >> $GITHUB_ENV
-        done
-        # For debugging purposes, let's print the extracted variables
-        echo "HOST=$HOST"
-        echo "USERNAME=$USERNAME"
-        echo "SSH_PRIVATE_KEY=$SSH_PRIVATE_KEY"
-
     - name: Deploy to server
       uses: appleboy/ssh-action@master
       with:
-        host: ${{ env.HOST }}
-        username: ${{ env.USERNAME }}
-        key: ${{ env.SSH_PRIVATE_KEY }}
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
           # Create project directory if it doesn't exist
           mkdir -p ~/bus-tracking-app
