@@ -1,0 +1,73 @@
+name: Deploy to Remote Server Automatically
+
+on:
+  push:
+    branches: [ Production ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+    - name: Deploy to server
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          # Create project directory if it doesn't exist
+          mkdir -p ~/bus-tracking-app
+          
+          # Clone or pull the repository
+          if [ -d "~/bus-tracking-app/.git" ]; then
+            cd ~/bus-tracking-app
+            git pull
+          else
+            git clone https://github.com/Lightsumo89/Centro-Bus-Predictor---CSC-380-Project.git ~/bus-tracking-app
+          fi
+          
+          # Create virtual environment if it doesn't exist
+          if [ ! -d "~/bus-tracking-app/venv" ]; then
+            cd ~/bus-tracking-app
+            python3 -m venv venv
+          fi
+          
+          # Install dependencies in virtual environment
+          cd ~/bus-tracking-app
+          source venv/bin/activate
+          pip install -r requirements.txt
+          
+          # Create a run script
+          cat > ~/bus-tracking-app/run.sh << 'EOL'
+          #!/bin/bash
+          cd ~/bus-tracking-app
+          source venv/bin/activate
+          
+          # Kill any existing instances
+          pkill -f "python bus-api.py" || true
+          
+          # Start the application on a non-privileged port
+          export PORT=10589
+          nohup python Controller/bus-api.py > app.log 2>&1 &
+          
+          echo "Application started on port $PORT"
+          EOL
+          
+          chmod +x ~/bus-tracking-app/run.sh
+          
+          # Stop any running instances and start the application
+          cd ~/bus-tracking-app
+          ./run.sh
