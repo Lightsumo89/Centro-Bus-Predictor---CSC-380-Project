@@ -32,7 +32,7 @@ jobs:
           mkdir -p ~/bus-tracking-app
           
           # Clone or pull the repository
-          if [ -d "~/bus-tracking-app/.git" ]; then
+          if [ -d ~/bus-tracking-app/.git ]; then
             cd ~/bus-tracking-app
             git pull
           else
@@ -40,7 +40,7 @@ jobs:
           fi
           
           # Create virtual environment if it doesn't exist
-          if [ ! -d "~/bus-tracking-app/venv" ]; then
+          if [ ! -d ~/bus-tracking-app/venv ]; then
             cd ~/bus-tracking-app
             python3 -m venv venv
           fi
