@@ -1,5 +1,10 @@
 flask>=2.0.0
 mysql-connector-python>=8.0.0
+pandas>=1.0.0
+folium>=0.12.0
+numpy>=1.20.0
+hmmlearn>=0.2.8
+scipy>=1.6.0
+requests>=2.25.0
 sshtunnel>=0.4.0
 pymysql>=1.0.0
-requests>=2.25.0
