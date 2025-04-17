@@ -2,6 +2,8 @@ from flask import Flask, jsonify, request, render_template
 import pandas as pd
 import folium
 import os
+import datetime
+import mysql.connector
 
 app = Flask(__name__)
 
