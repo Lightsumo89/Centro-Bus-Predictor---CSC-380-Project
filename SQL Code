@@ -24,11 +24,11 @@ insert into Stop values(17872, 'Bridge St & Celi Dr');
 insert into Stop values(18279, 'Bridge St & Widewaters Pkwy');
 insert into Stop values(2226, 'E Genesee St & Allen St');
 insert into Stop values(2141, 'E Genesee St & Almond St');
-insert into RouteStops values('SY76', 17652, FROM HUB);
-insert into RouteStops values('SY76', 17872, FROM HUB);
-insert into RouteStops values('SY76', 18279, FROM HUB);
-insert into RouteStops values('SY76', 2226, FROM HUB);
-insert into RouteStops values('SY76', 2141, FROM HUB);
+insert into RouteStops values('SY76', 17652, 'FROM HUB');
+insert into RouteStops values('SY76', 17872, 'FROM HUB');
+insert into RouteStops values('SY76', 18279, 'FROM HUB');
+insert into RouteStops values('SY76', 2226, 'FROM HUB');
+insert into RouteStops values('SY76', 2141, 'FROM HUB');
 
 
 create table LastTime(vehicle_id int(5), stop_id int(5), route_id varchar(10), predict_time time(0), primary key(vehicle_id), foreign key(vehicle_id) references Bus(vehicle_id), foreign key(stop_id) references Stop(stop_id), foreign key(route_id) references Route(route_id));
