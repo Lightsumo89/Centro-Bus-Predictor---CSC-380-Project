@@ -1,10 +1,11 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Centro - Public Transportation</title>
-  <link rel="stylesheet" href="./static/styles.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
   <header>
@@ -16,18 +17,33 @@
             <li class="dropdown-item">
               <button class="submenu-btn">ABOUT ▾</button>
               <ul class="nested-menu">
-                <li><a href="contact.html">Contact Us</a></li>
+                <li><a href="{{ url_for('contact') }}">Contact Us</a></li>
+                <li><a href="{{ url_for('faq') }}">FAQs</a></li>
+                <li><a href="{{ url_for('time_operation') }}">Hours of Operation</a></li>
+                <li><a href="{{ url_for('oswego_team') }}">OSWEGO Student Team</a></li>
               </ul>
             </li>
-            <li class="dropdown-item"><a href="faq.html">FAQs</a></li>
-            <li class="dropdown-item"><a href="help.html">HELP</a></li>
-            <li class="dropdown-item"><a href="team-d.html">OSWEGO TEAM</a></li>
+            <li class="dropdown-item">
+              <a href="{{ url_for('faq') }}">FAQs</a>
+            </li>
+            <li class="dropdown-item">
+              <a href="{{ url_for('how_to_ride') }}">HOW TO RIDE</a>
+            </li>
+            <li class="dropdown-item">
+              <a href="{{ url_for('passes') }}">PURCHASE</a>
+            </li>
+            <li class="dropdown-item">
+              <a href="{{ url_for('updates') }}">Service Bulletins</a>
+            </li>
+            <li class="dropdown-item">
+              <a href="{{ url_for('routes') }}">ROUTES &amp; SCHEDULES</a>
+            </li>
           </ul>
         </div>
       </div>
       <div class="logo-container">
-        <a href="index.html">
-          <img src="logo.jpg" alt="Centro Logo">
+        <a href="{{ url_for('index') }}">
+          <img src="{{ url_for('static', filename='images/logo.jpg') }}" alt="Centro Logo">
         </a>
       </div>
     </div>
