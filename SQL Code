@@ -4,7 +4,7 @@ create table Route(route_id varchar(10), route_name varchar(35), primary key(rou
 
 //RouteStops documents what stops are part of what route
 
-create table RouteStops(route_id varchar(10), stop_id int(5), primary key(route_id, stop_id), foreign key(route_id) references Route(route_id), foreign key(stop_id) references Stop(stop_id));
+create table RouteStops(route_id varchar(10), stop_id int(5), route_dir varchar(10), primary key(route_id, stop_id, route_dir), foreign key(route_id) references Route(route_id), foreign key(stop_id) references Stop(stop_id));
 
 create table Bus(vehicle_id int(5), pattern_id int(5), route_id varchar(10), primary key(vehicle_id), foreign key(route_id) references Route(route_id)); 
 
