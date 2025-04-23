@@ -30,13 +30,15 @@
         <div class="dropdown-container">
             <select name="route" id="route-select">
                 <option value="">Select Bus Route</option>
-                <option value="Walmart Via 104">Walmart via 104</option>
-                <option value="Price Chopper">Price Chopper</option>
-                <option value="Blue Route">Blue route</option>
-                <option value="Green Route">Green route</option>
-                <option value="Oswego - Syracuse">Oswego-Syracuse</option>
-                <option value="SY76">SY76</option>
+                <option value="Walmart Via 104" {{ 'selected' if selected_route == 'Walmart Via 104' else '' }}>Walmart via 104</option>
+                <option value="Price Chopper" {{ 'selected' if selected_route == 'Price Chopper' else '' }}>Price Chopper</option>
+                <option value="Blue Route" {{ 'selected' if selected_route == 'Blue Route' else '' }}>Blue route</option>
+                <option value="Green Route" {{ 'selected' if selected_route == 'Green Route' else '' }}>Green route</option>
+                <option value="Oswego - Syracuse" {{ 'selected' if selected_route == 'Oswego - Syracuse' else '' }}>Oswego-Syracuse</option>
+                <option value="SY76" {{ 'selected' if selected_route == 'SY76' else '' }}>SY76</option>
+                <option value="SY40" {{ 'selected' if selected_route == 'SY40' else '' }}>SY40</option>
             </select>
+            
 
             <select name="direction" id="direction-type-select">
                 <option value="">Select Direction</option>
@@ -49,10 +51,43 @@
             </select>
 
             <button type="submit">Generate Map</button>
+
+            {% if prediction %}
+        <div style="margin-top: 10px; font-weight: bold; font-size: 18px;">
+            {{ prediction }}
+        </div>
+            {% endif %}
         </div>
     </form>
 
     <iframe id="map" src="{{ url_for('static', filename='bus_stops_map.html') }}" ></iframe>
 
+     <script>
+
+        document.getElementById('route-select').addEventListener('change', function () {
+            const selectedRoute = this.value;
+            const stopSelect = document.getElementById('stop-select');
+
+            console.log("Selected route:", selectedRoute);
+
+            stopSelect.innerHTML = '<option value="">Select Stop</option>';
+
+            if (selectedRoute) {
+                fetch(`/get_stops/${encodeURIComponent(selectedRoute)}`)
+                    .then(response => response.json())
+                    .then(stops => {
+                        console.log("Stops fetched:", stops);
+                        stops.forEach(stop => {
+                            const option = document.createElement('option');
+                            option.value = stop;
+                            option.text = stop;
+                            stopSelect.appendChild(option);
+                        });
+                    })
+                    .catch(err => console.error("Error fetching stops:", err));
+            }
+        });
+    </script>
 </body>
 </html>
+
