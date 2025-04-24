@@ -7,7 +7,9 @@ import numpy as np
 from hmmlearn import hmm
 from scipy.stats import multivariate_normal
 import mysql.connector
+import jinja2
 from datetime import datetime
+from error_handlers import register_error_handlers
 
 DATABASE = {
     "host": "pi.cs.oswego.edu",
@@ -20,6 +22,8 @@ app = Flask(__name__,
             template_folder='../templates',
             static_folder='../static')
 
+# Register error handlers
+register_error_handlers(app)
 
 
 def get_stop_A(stop, route, direction):
@@ -189,7 +193,7 @@ def generate_map():
     direction = request.form.get('direction')
 
     try:
-        df = pd.read_csv('matched_stops.csv')
+        df = pd.read_csv('/Controller/matched_stops.csv')
         df.columns = df.columns.str.strip()
 
         map_center = [43.455, -76.532]  # Oswego, NY
@@ -232,70 +236,80 @@ def dev_index():
         }
     })
 
+# A helper function to handle template rendering with error catching
+def safe_render_template(template_name):
+    try:
+        return render_template(template_name)
+    except jinja2.exceptions.TemplateNotFound:
+        if not app.debug:
+            app.logger.error(f"Template not found: {template_name}")
+            return render_template('errors/404.html'), 404
+        else:
+            raise
 
 @app.route('/frontend/index.html')
 def index():
-    return render_template('index.html')
+    return safe_render_template('index.html')
 
 
 @app.route('/frontend/contact.html')
 def contact():
-    return render_template('contact.html')
+    return safe_render_template('contact.html')
 
 
 @app.route('/frontend/faq.html')
 def faq():
-    return render_template('faq.html')
+    return safe_render_template('faq.html')
 
 
 @app.route('/frontend/time_operation.html')
 def time_operation():
-    return render_template('time_operation.html')
+    return safe_render_template('time_operation.html')
 
 
 @app.route('/frontend/oswego_team.html')
 def oswego_team():
-    return render_template('oswego_team.html')
+    return safe_render_template('oswego_team.html')
 
 
 @app.route('/frontend/how_to_ride.html')
 def how_to_ride():
-    return render_template('how_to_ride.html')
+    return safe_render_template('how_to_ride.html')
 
 
 @app.route('/frontend/passes.html')
 def passes():
-    return render_template('passes.html')
+    return safe_render_template('passes.html')
 
 
 @app.route('/frontend/updates.html')
 def updates():
-    return render_template('updates.html')
+    return safe_render_template('updates.html')
 
 
 @app.route('/frontend/routes.html')
 def routes():
-    return render_template('routes.html')
+    return safe_render_template('routes.html')
 
 
 @app.route('/frontend/plan-your-trip.html')
 def plan_your_trip():
-    return render_template('plan-your-trip.html')
+    return safe_render_template('plan-your-trip.html')
 
 
 @app.route('/frontend/fares.html')
 def fares():
-    return render_template('fares.html')
+    return safe_render_template('fares.html')
 
 
 @app.route('/frontend/news.html')
 def news():
-    return render_template('news.html')
+    return safe_render_template('news.html')
 
 
 @app.route('/frontend/alerts.html')
 def alerts():
-    return render_template('alerts.html')
+    return safe_render_template('alerts.html')
 
 
 if __name__ == '__main__':
