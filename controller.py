@@ -76,12 +76,38 @@ if __name__ == "__main__":
 
                         total_sum += (row_user_input.get("ArriveTime") - row_last_arrival.get("ArriveTime")).total_seconds()
 
+                        print(f"Last Arrival Row ArriveTime: {row_last_arrival.get('ArriveTime')}")
+                        print(f"User Input Row ArriveTime: {row_user_input.get('ArriveTime')}")
+
+                        print(f"Difference: {(row_user_input.get('ArriveTime') - row_last_arrival.get('ArriveTime')).total_seconds()}, User Input ID: {row_user_input.get('ID')}, Last Arrival ID: {row_last_arrival.get('ID')}")
+        
+
                         break
 
                     elif row_user_input.get("ID") > row_last_arrival.get("ID"):
                         break
 
 
+            if ctr == 0:
+                # get consecutive round trips, have to check for a row_last_arrival that has an ID 1 greater than a row_user_input]
+                for row_user_input in rows_user_input:
+                    for row_last_arrival in rows_last_arrival:
+                        if (row_user_input.get("ID") == row_last_arrival.get("ID") + 1 and 
+                            row_user_input.get("ArriveTime") > row_last_arrival.get("ArriveTime") and 
+                            row_user_input.get("ArriveTime").date() == row_last_arrival.get("ArriveTime").date()
+                        ):
+                            ctr += 1
+
+                            total_sum += (row_user_input.get("ArriveTime") - row_last_arrival.get("ArriveTime")).total_seconds()
+
+                            print(f"Last Arrival Row ArriveTime: {row_last_arrival.get('ArriveTime')}")
+                            print(f"User Input Row ArriveTime: {row_last_arrival.get('ArriveTime')}")
+
+                            print(f"Difference: {(row_user_input.get('ArriveTime') - row_last_arrival.get('ArriveTime')).total_seconds()}, User Input ID: {row_user_input.get('ID')}, Last Arrival ID: {row_last_arrival.get('ID')}")
+
+                            break
+
+  
             if ctr == 0:
                 print("no data")
 
@@ -96,5 +122,6 @@ if __name__ == "__main__":
         print("no prediction")
 
     else:
-        print(min(predicted_times))                    
+        print(f"Final Predicted Time: {min(predicted_times)}")                    
         
+
