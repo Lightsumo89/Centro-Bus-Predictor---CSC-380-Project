@@ -47,7 +47,7 @@ header {
   padding: 12px 20px;
   max-width: 1200px;
   margin: 0 auto;
-  flex-direction: row-reverse; /* This moves menu to left */
+  flex-direction: row-reverse; 
 }
 
 .logo-container {
@@ -256,7 +256,7 @@ header {
   color: var(--primary);
 }
 
-/* Rest of your existing CSS remains the same */
+
 .quick-links {
   display: flex;
   flex-wrap: wrap;
@@ -368,6 +368,10 @@ footer {
   max-width: 1200px;
   margin: 0 auto;
   text-align: center;
+}
+
+footer .footer-info p {
+  font-size: 0.9rem;
 }
 
 @keyframes fadeIn {
@@ -522,26 +526,239 @@ footer {
        
         .clear-box {
           width: 80%;
-          max-width: 600px; /* Prevents excessive width */
+          max-width: 600px; 
           padding: 20px;
-          border: 1px solid rgba(0, 0, 0, 0.1); /* Very light gray border */
-          background: white; /* Fully white background */
-          border-radius: 8px; /* Slightly rounded corners */
-          box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.1); /* Soft shadow like MTA site */
+          border: 1px solid rgba(0, 0, 0, 0.1);
+          background: white; 
+          border-radius: 8px; 
+          box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.1); 
           text-align: center;
       }
 
-      /* Individual items inside the box */
+
       .item {
           padding: 15px;
           margin-bottom: 10px;
-          border-bottom: 1px solid rgba(0, 0, 0, 0.1); /* Light dividers */
+          border-bottom: 1px solid rgba(0, 0, 0, 0.1); 
           text-align: left;
           color: black;
           font-size: 16px;
       }
 
-      /* Remove border for last item */
+   
       .item:last-child {
           border-bottom: none;
       }
+
+      #map {
+        height: 80vh;
+        width: 100%;
+        margin-top: 1rem;
+      }
+      .control-panel {
+        background: white;
+        padding: 15px;
+        border-radius: 5px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.2);
+        margin-bottom: 10px;
+      }
+      .route-select {
+        margin-bottom: 10px;
+      }
+      .prediction-info {
+        background: white;
+        padding: 10px;
+        border-radius: 5px;
+        margin-top: 10px;
+        display: none;
+      }
+      #team {
+        padding: 50px 20px;
+        background-color: #f8f9fa;
+        text-align: center;
+      }
+      
+      #team h2 {
+        font-size: 2em;
+        margin-bottom: 40px;
+      }
+      
+      .team-container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 30px;
+      }
+      
+      .team-member {
+        background-color: #ffffff;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        max-width: 220px;
+        width: 100%;
+        transition: transform 0.2s ease;
+      }
+      
+      .team-member:hover {
+        transform: translateY(-5px);
+      }
+      
+      .team-member h3 a {
+        color: #0077b5;
+        text-decoration: none;
+        font-size: 1.1em;
+      }
+      
+      .team-member h3 a:hover {
+        text-decoration: underline;
+      }
+      
+      .team-member p {
+        margin-top: 10px;
+        font-size: 0.95em;
+        color: #333;
+        line-height: 1.4;
+      }
+    
+    summary {
+      cursor: pointer;
+      font-weight: bold;
+    }
+    details {
+      margin-bottom: 10px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      background: #fafafa;
+  
+  }
+  .tab-container {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .tab-btn {
+    padding: 10px 20px;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    background: #f0f0f0;
+  }
+  .tab-btn.active {
+    background: #0078d7;
+    color: white;
+    font-weight: bold;
+  }
+  .tab-content {
+    display: none;
+  }
+  .tab-content.active {
+    display: block;
+  }
+  .faq-section {
+    padding: 40px;
+    background-color: #f9f9f9;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  
+  /* FAQ section styling */
+.faq-section {
+  padding: 40px;
+  background-color: #f9f9f9;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.faq-title {
+  text-align: center;
+  margin-bottom: 30px;
+  color: #004C97;
+}
+
+/* FAQ item containers */
+.faq-item {
+  background-color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.faq-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+}
+
+/* Style for the question title (h2) */
+.faq-item h2 {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #004C97;
+  margin: 0;
+  padding: 20px;
+  background-color: #e0f1ff;
+  border-bottom: 2px solid #004C97;
+  cursor: pointer;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Hover effect on question titles */
+.faq-item h2:hover {
+  background-color: #004C97;
+  color: #fff;
+}
+
+/* Style for the answer text */
+.faq-item p {
+  font-size: 1rem;
+  color: #333;
+  padding: 0;
+  margin: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-out, padding 0.3s ease-out;
+  background-color: #f1faff;
+}
+
+/* When FAQ item is active, show the answer */
+.faq-item.active p {
+  padding: 20px;
+  max-height: 1000px; /* Large enough to fit any answer */
+}
+  
+  /* Resources section styling */
+  .resources-section {
+    margin-top: 40px;
+    padding: 20px;
+    background-color: #eaf4ff;
+    border-radius: 10px;
+  }
+  
+  .resources-title {
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: #004C97;
+    margin-bottom: 20px;
+  }
+  
+  .resources-list {
+    list-style-type: none;
+    padding: 0;
+  }
+  
+  .resources-list li {
+    margin-bottom: 10px;
+  }
+  
+  .resources-list a {
+    font-size: 1rem;
+    color: #004C97;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.3s ease;
+  }
+  
+  .resources-list a:hover {
+    color: #006bb3;
+  }
