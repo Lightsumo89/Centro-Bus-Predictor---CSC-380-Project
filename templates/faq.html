@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Centro - Public Transportation</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
   <header>
@@ -16,23 +16,23 @@
             <li class="dropdown-item">
               <button class="submenu-btn">ABOUT ▾</button>
               <ul class="nested-menu">
-                <li><a href="{{ url_for('home') }}#contact">Contact Us</a></li>
+                <li><a href="{{ url_for('index') }}#contact">Contact Us</a></li>
               </ul>
             </li>
             <li class="dropdown-item">
-              <a href="{{ url_for('home') }}#faqs">FAQs</a>
+              <a href="{{ url_for('index') }}#faqs">FAQs</a>
             </li>
             <li class="dropdown-item">
-              <a href="{{ url_for('home') }}#help">HELP</a>
+              <a href="{{ url_for('index') }}#help">HELP</a>
             </li>
             <li class="dropdown-item">
-              <a href="{{ url_for('home') }}#team">OSWEGO TEAM</a>
+              <a href="{{ url_for('index') }}#team">OSWEGO TEAM</a>
             </li>
           </ul>
         </div>
       </div>
       <div class="logo-container">
-        <a href="{{ url_for('home') }}">
+        <a href="{{ url_for('index') }}">
           <img src="{{ url_for('static', filename='images/logo.jpg') }}" alt="Centro Logo">
         </a>
       </div>
@@ -103,6 +103,6 @@
     </section>
   </main>
 
-  <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
