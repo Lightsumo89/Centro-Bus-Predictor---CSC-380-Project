@@ -32,3 +32,5 @@ insert into RouteStops values('SY76', 2141, 'FROM HUB');
 
 
 create table LastTime(vehicle_id int(5), stop_id int(5), route_id varchar(10), predict_time time(0), primary key(vehicle_id), foreign key(vehicle_id) references Bus(vehicle_id), foreign key(stop_id) references Stop(stop_id), foreign key(route_id) references Route(route_id));
+
+create table ServiceBulletin(route_id varchar(10), alert_details varchar(500), alert_cause varchar(70), primary key(route_id), foreign key(route_id) references Route(route_id));
