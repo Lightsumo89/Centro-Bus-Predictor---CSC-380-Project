@@ -17,11 +17,16 @@ def exportToCSV(route_id):
     #                    INTO OUTFILE 'stops.csv'
     #                    """)
 
+    # cursor.execute("""
+    #                SELECT * FROM RouteStops
+    #                 JOIN Route ON RouteStops.route_id = Route.route_id
+    #                 JOIN Stop ON RouteStops.stop_id = Stop.stop_id
+    #                WHERE RouteStops.route_id = %s""", (route_id,))
+
     cursor.execute("""
-                   SELECT * FROM RouteStops
-                    JOIN Route ON RouteStops.route_id = Route.route_id
-                    JOIN Stop ON RouteStops.stop_id = Stop.stop_id
-                   WHERE RouteStops.route_id = %s""", (route_id,))
+        SELECT DISTINCT StopID, Route, Direction FROM Delays_n
+            WHERE Route = %s
+    """, (route_id,))
     rows = cursor.fetchall()
 
     with open(f"{route_id}_stops.csv", "w", newline="") as file:
@@ -32,4 +37,4 @@ def exportToCSV(route_id):
     cursor.close()
     db.close()
 
-exportToCSV("SY76")
+exportToCSV("OSW46")

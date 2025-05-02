@@ -19,10 +19,13 @@ stopurl2 = "&dir="
 stopurl3 = "%20"
 stopurl4 = "&format=json"
 
-global route_id
-global stop_id
-global stop_name
-global route_dir
+serviceurl = "https://bus-time.centro.org/bustime/api/v3/getservicebulletins?key=PUZXP7CxWkPaWnvDWdacgiS4M&rt="
+serviceurl2 = "&format=json"
+
+# global route_id
+# global stop_id
+# global stop_name
+# global route_dir
 
 # def getStops():
     # will iterate through a db query to get stop, alter global variable (hopefully)
@@ -48,6 +51,18 @@ def insertStopsData(stop_id, stop_name, route_id, route_dir):
     cursor.close()
     db.close()
 
+def insertServiceData(route_id, alert_details, alert_cause):
+    db = mysql.connector.connect(**DATABASE, connection_timeout = 200)
+    cursor = db.cursor()
+    insert_into_service = ("""
+        INSERT INTO ServiceBulletin(route_id, alert_details, alert_cause) VALUES (%s, %s, %s)
+                           ON DUPLICATE KEY UPDATE alert_details = %s, alert_cause = %s""")
+
+    cursor.execute(insert_into_service, (route_id, alert_details, alert_cause, alert_details, alert_cause))
+
+    db.commit()
+    cursor.close()
+    db.close()
 
 
 def pollStops(route_id, route_dir, input_dir, input_destination):
@@ -75,10 +90,39 @@ def pollStops(route_id, route_dir, input_dir, input_destination):
     except urllib.error.URLError as e:
         print("error")
 
+def pollServiceBulletin(route_id):
+    url = serviceurl + route_id + serviceurl2
+    try:
+        with urllib.request.urlopen(url) as response:
+            parse = json.loads(response.read().decode('utf-8'))
+            # services = parse.get('bustime-response', {}).get('services', [])
+            alerts = parse.get('bustime-response', {}).get('sb', [])
+            if not alerts:
+                print("No service bulletins found.")
+                alertDetails = "No service bulletins found."
+                alertCause = ""
+                insertServiceData(route_id, alertDetails, alertCause)
+            for alert in alerts:
+                # alertName = alert.get('nm')
+                alertDetails = alert.get('dtl')
+                alertCause = alert.get('cse')
+                alertCauseAnnotated = "Cause: " + alertCause
+                # print(alertName)
+                print(alertDetails)
+                print(alertCauseAnnotated)
+                insertServiceData(route_id, alertDetails, alertCauseAnnotated)
+    except urllib.error.URLError as e:
+        print("error")
+    except ValueError as e:
+        print("ValueError")
+
+
 # test schedule
 # schedule.every().monday.at("05:00").do(pollStops(route_id, route_dir, input_dir, input_destination))
 # while True:
 #     schedule.run_pending()
 #     time.sleep(1)
 
-pollStops("SY76", "TO HUB", "TO", "HUB")
+# pollStops("SY76", "TO HUB", "TO", "HUB")
+
+pollServiceBulletin("SY76")
