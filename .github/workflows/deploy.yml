@@ -34,40 +34,96 @@ jobs:
           # Clone or pull the repository
           if [ -d ~/bus-tracking-app/.git ]; then
             cd ~/bus-tracking-app
-            git pull
+            git fetch origin
+            git checkout Production
+            git pull origin Production
           else
-            git clone https://github.com/Lightsumo89/Centro-Bus-Predictor---CSC-380-Project.git ~/bus-tracking-app
+            git clone -b Production https://github.com/Lightsumo89/Centro-Bus-Predictor---CSC-380-Project.git ~/bus-tracking-app
           fi
           
-          # Create virtual environment if it doesn't exist
-          if [ ! -d ~/bus-tracking-app/venv ]; then
-            cd ~/bus-tracking-app
-            python3 -m venv venv
+          # Remove old venv if it exists (to ensure clean state)
+          cd ~/bus-tracking-app
+          if [ -d "venv" ]; then
+            echo "Removing old virtual environment..."
+            rm -rf venv
+          fi
+          
+          # Create fresh virtual environment
+          echo "Creating new virtual environment..."
+          python3 -m venv venv
+          
+          # Verify activation script exists
+          if [ ! -f "venv/bin/activate" ]; then
+            echo "Error: venv activation script not found after creation"
+            exit 1
           fi
           
           # Install dependencies in virtual environment
-          cd ~/bus-tracking-app
+          echo "Installing dependencies..."
           source venv/bin/activate
+          python -m pip install --upgrade pip
           pip install -r requirements.txt
           
-          # Create a run script
+          # Create a run script with better error handling
           cat > ~/bus-tracking-app/run.sh << 'EOL'
           #!/bin/bash
           cd ~/bus-tracking-app
-          source venv/bin/activate
+          
+          # Check if activation script exists
+          if [ -f "venv/bin/activate" ]; then
+            source venv/bin/activate
+            PYTHON_BIN="python"
+          else
+            # Use venv python directly if activation fails
+            PYTHON_BIN="venv/bin/python"
+          fi
           
           # Kill any existing instances
-          pkill -f "python bus-api.py" || true
+          pkill -f "python.*bus-api.py" || true
+          sleep 2
           
-          # Start the application on a non-privileged port
+          # Set environment variables
           export PORT=10589
-          nohup python Controller/bus-api.py > app.log 2>&1 &
+          export FLASK_ENV=production
+          export PYTHONPATH=$PYTHONPATH:~/bus-tracking-app
           
-          echo "Application started on port $PORT"
+          # Start the application with logging
+          echo "Starting application at $(date)" >> deploy.log
+          nohup $PYTHON_BIN Controller/bus-api.py >> app.log 2>&1 &
+          APP_PID=$!
+          
+          # Wait a bit and check if app is running
+          sleep 5
+          if ps -p $APP_PID > /dev/null; then
+            echo "Application started successfully with PID $APP_PID" >> deploy.log
+            echo "Application started on port $PORT"
+          else
+            echo "Application failed to start" >> deploy.log
+            echo "Last 20 lines of app.log:" >> deploy.log
+            tail -20 app.log >> deploy.log
+            exit 1
+          fi
           EOL
           
           chmod +x ~/bus-tracking-app/run.sh
           
           # Stop any running instances and start the application
+          echo "Stopping existing instances..."
+          pkill -f "python.*bus-api.py" || true
+          sleep 2
+          
+          echo "Starting application..."
           cd ~/bus-tracking-app
           ./run.sh
+          
+          # Verify deployment
+          sleep 5
+          if curl -s -o /dev/null -w "%{http_code}" http://localhost:10589/ | grep -q "200\|302"; then
+            echo "Deployment successful - application is responding"
+          else
+            echo "Warning: Application might not be responding correctly"
+            echo "Checking process..."
+            ps aux | grep bus-api
+            echo "Last 20 lines of app.log:"
+            tail -20 app.log
+          fi
