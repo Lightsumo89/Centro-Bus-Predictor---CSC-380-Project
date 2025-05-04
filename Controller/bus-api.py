@@ -1,5 +1,7 @@
 from flask import Flask, request, jsonify, render_template
 import os
+import pandas as pd
+import folium
 from database import db_connection_required, get_all_stops, get_all_routes, get_all_buses
 import pandas as pd
 import folium
@@ -22,6 +24,8 @@ app = Flask(__name__,
             template_folder='../templates',
             static_folder='../static')
 
+# ------------------ EXISTING API ROUTES ------------------ #
+
 # Register error handlers
 register_error_handlers(app)
 
@@ -39,67 +43,6 @@ def get_stop_A(stop, route, direction):
     stop_A = row[0]  # get stop_id next
 
     return stop_A
-
-
-'''
-# Incomplete method
-def get_delay_A(stop, route, direction):
-    # get delay from LastArrival 
-    pass
-'''
-
-'''
-# Incomplete method
-def get_data(stop_A, stop_B, route, direction): # stop_B is the inputted stop, stop_A is the last stop the bus arrived to
-    # select rows from database 
-
-    db = mysql.connector.connect(**DATABASE)
-    cursor = db.cursor()
-
-    select_query = "SELECT * FROM Delays WHERE StopID = %s AND Route = %s AND Direction = %s ORDER BY ArriveTime DESC"
-
-    cursor.execute(select_query, (stop_A, route, direction))
-
-    rows_A = cursor.fetchall()
-
-    cursor.execute(select_query, (stop_B, route, direction))
-
-    rows_B = cursor.fetchall()
-
-    cursor.close()
-    db.close()
-
-    # convert to numpy array of [delay_A, delay_B] pairs, need to appropriately match entries in rows_A and rows_B, especially if they contain a different number of entries
-
-    return data
-'''
-
-'''
-# Incomplete method - has undefined variable 'known_delay_A'
-def predict_delay_B(given_delay_A, data):
-    # reshape for HMM training
-    X = data.reshape(-1, 2)  # each row is [delay_A, delay_B]
-
-    # define and train the HMM
-    num_states = 2  
-    model = hmm.GaussianHMM(n_components=num_states, covariance_type="full", n_iter=100)
-    model.fit(X)
-
-    # predict delay_B given delay_A using the trained HMM.
-
-    # construct a partial observation (only delay_A is known)
-    means = model.means_  # Get mean [delay_A, delay_B] for each state
-    covariances = model.covars_  # Get covariance matrices
-
-    # Find the most likely state given delay_A
-    best_state = np.argmin(np.abs(means[:, 0] - known_delay_A))  # Closest state in delay_A
-
-    # Predict delay_B based on that state's mean
-    predicted_delay_B = means[best_state, 1]
-
-    return predicted_delay_B
-'''
-
 
 def probabilistic_predict_delay_B(given_delay_A, data):
     # Reshape for HMM training
@@ -138,14 +81,12 @@ def get_stops(conn):
     stops = get_all_stops(conn, route_id)
     return jsonify(stops)
 
-
 @app.route('/api/routes', methods=['GET'])
 @db_connection_required
 def get_routes(conn):
     stop_id = request.args.get('stop_id')
     routes = get_all_routes(conn, stop_id)
     return jsonify(routes)
-
 
 @app.route('/api/buses', methods=['GET'])
 @db_connection_required
@@ -155,6 +96,10 @@ def get_buses(conn):
     buses = get_all_buses(conn, route_id, stop_id)
     return jsonify(buses)
 
+@app.route('/prediction/<input>', methods=['GET'])
+@db_connection_required
+def get_prediction_placeholder(conn, input):
+    return jsonify({"error": "No API Endpoint"}), 500
 
 '''
 # Original prediction endpoint from paste.txt - Commented out due to incompleteness
@@ -227,7 +172,7 @@ def generate_map():
 def dev_index():
     return jsonify({
         "name": "Bus System API",
-        "version": "1.0",
+        "version": "1.1",
         "endpoints": {
             "stops": "/api/stops?route_id={route_id}",
             "routes": "/api/routes?stop_id={stop_id}",
@@ -246,6 +191,79 @@ def safe_render_template(template_name):
             return render_template('errors/404.html'), 404
         else:
             raise
+# ------------------ NEW MAP + ROUTE ROUTES ------------------ #
+
+@app.route('/frontend/routes.html')
+def routes():
+    return render_template('routes.html', map_file="static/bus_stops_map.html")
+
+@app.route('/get_stops/<route>', methods=['GET'])
+def get_stops_for_route(route):
+    df = pd.read_csv('matched_stops.csv')
+    df.columns = df.columns.str.strip()
+    stops = df[df['Route'] == route]['stop_name'].tolist()
+    return jsonify(stops)
+
+@app.route('/get_directions/<route_name>', methods=['GET'])
+def get_directions(route_name):
+    df = pd.read_csv('matched_stops.csv')  # adjust the path
+    route_df = df[df['Route'] == route_name]
+
+    if route_df.empty:
+        return jsonify([])
+
+    directions = set()
+    directions.update(route_df['Direction1'].dropna().unique())
+    directions.update(route_df['Direction2'].dropna().unique())
+
+    return jsonify(sorted(directions))
+
+@app.route('/frontend/generate_map', methods=['POST'])
+def generate_map():
+    data = request.get_json()
+
+    route = data.get('route')
+    direction = data.get('direction')
+    stop = data.get('stop')
+
+    df = pd.read_csv('matched_stops.csv')
+    df.columns = df.columns.str.strip()
+
+    map_center = [43.455, -76.532]
+    bus_map = folium.Map(location=map_center, zoom_start=13)
+
+    for index, row in df.iterrows():
+        if route == row['Route']:
+            lat = row['stop_lat']
+            lon = row['stop_lon']
+            stop_name = row['stop_id']
+
+            folium.Marker(
+                location=[lat, lon],
+                popup=f"{stop_name}<br>Lat: {lat}, Lon: {lon}",
+            ).add_to(bus_map)
+
+    static_folder = 'static'
+    if not os.path.exists(static_folder):
+        os.makedirs(static_folder)
+
+    map_path = os.path.join(static_folder, "bus_stops_map.html")
+    bus_map.save(map_path)
+
+    return jsonify({
+        "map_file": "static/bus_stops_map.html",
+        "prediction": f"Next bus arrives in 5 minutes for {stop or 'selected stop'}"
+    })
+
+@app.route('/prediction/<stop>/<direction>/<route>', methods=['GET'])
+def get_prediction(stop: str, direction: str, route: str):
+    prediction = f"Prediction for stop '{stop}' on route '{route}' heading {direction} is 'Next bus arrives in 5 minutes'"
+    return jsonify({
+        "stop": stop,
+        "direction": direction,
+        "route": route,
+        "prediction": prediction
+    })
 
 @app.route('/frontend/index.html')
 def index():
@@ -291,7 +309,6 @@ def updates():
 def routes():
     return safe_render_template('routes.html')
 
-
 @app.route('/frontend/plan-your-trip.html')
 def plan_your_trip():
     return safe_render_template('plan-your-trip.html')
@@ -311,8 +328,15 @@ def news():
 def alerts():
     return safe_render_template('alerts.html')
 
+# ------------------ INITIALIZATION ------------------ #
+
+def generate_empty_map():
+    empty_map = folium.Map(location=[43.455, -76.532], zoom_start=13)
+    empty_map.save('static/bus_stops_map.html')  # Overwrites with default
+
+generate_empty_map()
 
 if __name__ == '__main__':
-    # Server configuration
+    #Server configuration
     port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=False)
+    app.run(host='0.0.0.0', port=port, debug=True)
