@@ -169,23 +169,27 @@
         <div class="menu-container" id="menuContainer">
           <button class="menu-btn" id="menuBtn">MENU</button>
           <ul class="dropdown-menu">
+           
             <li class="dropdown-item">
-              <button class="submenu-btn">ABOUT ▾</button>
-              <ul class="nested-menu">
-                <li><a href="contact.html">Contact Us</a></li>
-                <li><a href="faq.html">FAQs</a></li>
-                <li><a href="time_operation.html">Hours of Operation</a></li>
-                <li><a href="oswego_team.html">OSWEGO Student Team</a></li>
-              </ul>
+              <a href="faq.html">FAQs</a>
             </li>
-            <li class="dropdown-item"><a href="faq.html">FAQs</a></li>
-            <li class="dropdown-item"><a href="how_to_ride.html">HOW TO RIDE</a></li>
-            <li class="dropdown-item"><a href="passes.html">PURCHASE</a></li>
-            <li class="dropdown-item"><a href="updates.html">News &amp; Events</a></li>
-            <li class="dropdown-item"><a href="routes.html">ROUTES &amp; SCHEDULES</a></li>
+            <li class="dropdown-item">
+              <a href="help.html">HELP</a>
+            </li>            
+            <li class="dropdown-item">
+              <a href="team-d.html">OSWEGO TEAM</a></li>          
+              </li>
           </ul>
+          
         </div>
       </div>
+      <div class="logo-container">
+        <a href="index.html">
+          <img src="logo.jpg" alt="Centro Logo">
+        </a>
+      </div>
+    </div>
+  </header>
       <div class="logo-container">
         <a href="{{ url_for('index') }}">
           <img src="{{ url_for('static', filename='images/logo.jpg') }}" alt="Centro Logo">
@@ -254,7 +258,7 @@
   <footer>
     <div class="footer-container">
       <div class="footer-info">
-        <p>&copy; Oswego Team. All rights reserved.</p>
+        <p>&copy; Oswego Team D. All rights reserved. Contact - Monday - Friday: 8:00 AM - 5:00 PM Phone: (315) 442-3333  </p>
       </div>
     </div>
   </footer>
