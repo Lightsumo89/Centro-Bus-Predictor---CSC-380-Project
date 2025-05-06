@@ -1,7 +1,5 @@
 from flask import Flask, request, jsonify, render_template
 import os
-import pandas as pd
-import folium
 from database import db_connection_required, get_all_stops, get_all_routes, get_all_buses, get_db_connection
 import pandas as pd
 import folium
@@ -618,246 +616,301 @@ def get_directions(route_name):
 
     return jsonify(directions)
 
-"""
-@app.route('/frontend/generate_map', methods=['POST'])
-def generate_map():
-    data = request.get_json()
-
-    route = data.get('route')
-    direction = data.get('direction')
-    direction_text = data.get('directionText')
-    stop = data.get('stop')
-    stop_id = data.get('stopId')
-
-    print(
-        f"[DEBUG] Parsed request: route = '{route}', direction = '{direction}', direction_text = '{direction_text}', stop = '{stop}', stop_id = '{stop_id}'")
-
-    # If stop_id is None, try to find it using route, direction, and stop name
-    if stop_id is None and stop is not None:
-        try:
-            print(f"[DEBUG] Looking up stop_id for stop name '{stop}'")
-            df = pd.read_csv('../static/matched_stops.csv')
-            df.columns = df.columns.str.strip()
-
-            # Convert direction to integer for filtering
-            # Convert direction to integer for filtering
-            dir_filter = [0, 1]  # Default to all selectors if direction is invalid
-            if direction == '0':
-                dir_filter = [0]  # Direction 1 selectors
-            elif direction == '1':
-                dir_filter = [1]  # Direction 2 selectors
-
-            # Filter dataframe by route, direction, and stop name
-            print(f"[DEBUG] Filtering dataframe for route = '{route}', direction = {dir_filter}, stop = '{stop}'")
-            filtered = df[(df['Route'] == route) &
-                          (df['Selector'].isin(dir_filter)) &
-                          (df['stop_name'] == stop)]
-
-            print(f"[DEBUG] Found {len(filtered)} matching rows")
-            if not filtered.empty:
-                stop_id = filtered.iloc[0]['stop_id']
-                print(f"[DEBUG] Found stop_id: {stop_id} for stop {stop}")
-            else:
-                print(f"[DEBUG] No matching stop found")
-        except Exception as e:
-            print(f"[ERROR] Error finding stop_id: {str(e)}")
-            print(traceback.format_exc())
-
-    # Decide which direction value to use for prediction
-    prediction_direction = direction_text if direction_text else direction
-    print(f"[DEBUG] Using direction value for prediction: '{prediction_direction}'")
-
-    # Get prediction for the selected stop
-    print(
-        f"[DEBUG] Calling get_bus_arrival_prediction with stop_id = '{stop_id}', route = '{route}', direction = '{prediction_direction}'")
-    prediction = get_bus_arrival_prediction(stop_id, route, prediction_direction)
-    print(f"[DEBUG] Prediction result: {prediction}")
-
-    # Read and clean CSV
-    df = pd.read_csv('../static/matched_stops.csv')
-    df.columns = df.columns.str.strip()
-    df = df[df['Selector'].notnull()].copy()  # Create explicit copy
-    df['Selector'] = pd.to_numeric(df['Selector'], errors='coerce').fillna(-1).astype(int)
-
-    # Apply direction-based filtering
-    if direction == '0':
-        df = df[df['Selector'].isin([0])]
-    elif direction == '1':
-        df = df[df['Selector'].isin([1])]
-
-    df = df[df['Route'] == route]
-
-    # Create folium map
-    map_center = [43.455, -76.532]
-    bus_map = folium.Map(location=map_center, zoom_start=13)
-
-    for _, row in df.iterrows():
-        lat = row['stop_lat']
-        lon = row['stop_lon']
-        stop_name = row['stop_id']
-        popup_text = f"{row['stop_name']}<br>ID: {stop_name}<br>Lat: {lat}, Lon: {lon}"
-
-        if stop == row['stop_name']:
-            folium.Marker(
-                location=[lat, lon],
-                popup=popup_text,
-                tooltip=row['stop_name'],
-                icon=folium.Icon(color='red')
-            ).add_to(bus_map)
-        else:
-            folium.Marker(
-                location=[lat, lon],
-                popup=popup_text,
-                tooltip=row['stop_name'],
-            ).add_to(bus_map)
-
-    # Save map
-    static_folder = 'static'
-    if not os.path.exists(static_folder):
-        os.makedirs(static_folder)
-    map_path = os.path.join(static_folder, "bus_stops_map.html")
-    bus_map.save(map_path)
-
-    return jsonify({
-        "map_file": "static/bus_stops_map.html",
-        "prediction": prediction
-    })
-"""
 
 def get_project_root():
     """Returns the absolute path to the project root directory"""
-    # Current file is in the Controller directory
-    controller_dir = os.path.dirname(os.path.abspath(__file__))
-    # Project root is one level up
-    return os.path.dirname(controller_dir)
+    # Get the directory of the current file (bus-api.py)
+    current_file_dir = os.path.dirname(os.path.abspath(__file__))
+
+    # In production, we're in the Controller directory, so project root is one level up
+    project_root = os.path.dirname(current_file_dir)
+
+    print(f"[DEBUG] Current file directory: {current_file_dir}")
+    print(f"[DEBUG] Project root resolved to: {project_root}")
+
+    # Fall back to using an absolute path if the above doesn't work
+    if not os.path.exists(os.path.join(project_root, 'static')):
+        print(f"[DEBUG] Static directory not found at {os.path.join(project_root, 'static')}")
+        # Try alternative - go up one more level (in case we're in Controller/something)
+        project_root = os.path.dirname(project_root)
+        print(f"[DEBUG] Trying alternative project root: {project_root}")
+
+        # If still no static dir, use the home directory + bus-tracking-app
+        if not os.path.exists(os.path.join(project_root, 'static')):
+            home_dir = os.path.expanduser('~')
+            project_root = os.path.join(home_dir, 'bus-tracking-app')
+            print(f"[DEBUG] Using home directory fallback: {project_root}")
+
+    return project_root
+
 
 
 @app.route('/frontend/generate_map', methods=['POST'])
 def generate_map():
-    data = request.get_json()
+    try:
+        print(f"[DEBUG] Starting map generation")
+        print(f"[DEBUG] Current working directory: {os.getcwd()}")
 
-    selected_datetime_str = str(data.get('selected_datetime') or data.get('selected_hour'))
-    year = selected_datetime_str.split('-')[0] if '-' in selected_datetime_str else None
-    month = selected_datetime_str.split('-')[1] if '-' in selected_datetime_str else None
-    whole = selected_datetime_str.split('-')[2] if '-' in selected_datetime_str else None
-    day = whole.split(' ')[0] if ' ' in whole else whole
-    time_hour = selected_datetime_str.split(' ')[1]
-    hour = time_hour.split(':')[0] if ':' in time_hour else time_hour
-    selected_datetime_obj = None
-    print(f"[DEBUG] Received selected_datetime: {selected_datetime_str}")
-
-    if selected_datetime_str:
+        # Get request data
         try:
-            # Handle both full datetime and just hour (e.g., "2025-05-06 14:00" or "14:00")
-            if len(selected_datetime_str) <= 5:  # Likely just hour, add today's date
-                today_str = datetime.today().strftime('%Y-%m-%d')
-                selected_datetime_obj = datetime.strptime(f"{today_str} {selected_datetime_str}", "%Y-%m-%d %H:%M")
-            else:
-                selected_datetime_obj = datetime.strptime(selected_datetime_str, "%Y-%m-%d %H:%M")
-            print(f"[DEBUG] Parsed datetime: {selected_datetime_obj}")
-        except Exception as e:
-            print(f"[ERROR] Failed to parse selected_datetime: {selected_datetime_str}, Error: {str(e)}")
+            data = request.get_json() if request.is_json else request.form.to_dict()
+            print(f"[DEBUG] Received data: {data}")
+        except Exception as req_err:
+            print(f"[ERROR] Failed to parse request data: {str(req_err)}")
+            data = {}
 
-    route = data.get('route')
-    direction = data.get('direction')
-    direction_text = data.get('directionText')
-    stop = data.get('stop')
-    stop_id = data.get('stopId')
+        # Get route parameters
+        route = data.get('route', '')
+        direction = data.get('direction', '')
+        direction_text = data.get('directionText', '')
+        stop = data.get('stop', '')
+        stop_id = data.get('stopId', '')
 
-    print(
-        f"[DEBUG] Parsed request: route = '{route}', direction = '{direction}', direction_text = '{direction_text}', stop = '{stop}', stop_id = '{stop_id}'")
+        # Get datetime parameters
+        selected_datetime_str = str(
+            data.get('selected_datetime') or data.get('selected_hour') or datetime.today().strftime('%Y-%m-%d %H:%M'))
+        year = selected_datetime_str.split('-')[0] if '-' in selected_datetime_str else None
+        month = selected_datetime_str.split('-')[1] if '-' in selected_datetime_str else None
+        whole = selected_datetime_str.split('-')[2] if '-' in selected_datetime_str else None
+        day = whole.split(' ')[0] if ' ' in whole and whole else None
+        time_hour = selected_datetime_str.split(' ')[1] if ' ' in selected_datetime_str else None
+        hour = time_hour.split(':')[0] if time_hour and ':' in time_hour else None
 
-    # If stop_id is None, try to find it using route, direction, and stop name
-    if stop_id is None and stop is not None:
+        print(f"[DEBUG] Route: {route}, Direction: {direction}, Stop: {stop}, Stop ID: {stop_id}")
+        print(f"[DEBUG] Date params: year={year}, month={month}, day={day}, hour={hour}")
+
+        # Get project root and verify paths
+        project_root = get_project_root()
+        static_dir = os.path.join(project_root, 'static')
+        csv_path = os.path.join(static_dir, 'matched_stops.csv')
+        map_path = os.path.join(static_dir, 'bus_stops_map.html')
+
+        print(f"[DEBUG] Static directory: {static_dir}")
+        print(f"[DEBUG] CSV path: {csv_path}")
+        print(f"[DEBUG] Map path: {map_path}")
+
+        # Create static directory if it doesn't exist
+        if not os.path.exists(static_dir):
+            print(f"[DEBUG] Creating static directory")
+            try:
+                os.makedirs(static_dir)
+            except Exception as mkdir_err:
+                print(f"[ERROR] Failed to create static directory: {str(mkdir_err)}")
+
+        # Check if CSV exists
+        if not os.path.exists(csv_path):
+            print(f"[ERROR] CSV file not found at {csv_path}")
+            # List files in the directory to help debug
+            try:
+                print(f"[DEBUG] Files in {static_dir}: {os.listdir(static_dir)}")
+            except Exception as list_err:
+                print(f"[ERROR] Failed to list directory: {str(list_err)}")
+
+            # Create an empty map as fallback
+            bus_map = folium.Map(location=[43.455, -76.532], zoom_start=13)
+            try:
+                bus_map.save(map_path)
+                print(f"[DEBUG] Saved fallback map to {map_path}")
+            except Exception as save_err:
+                print(f"[ERROR] Failed to save fallback map: {str(save_err)}")
+
+            return jsonify({
+                "map_file": "static/bus_stops_map.html",
+                "error": "CSV file not found"
+            })
+
+        # Try to find stop_id if needed
+        if stop_id is None and stop is not None and route:
+            try:
+                df = pd.read_csv(csv_path)
+                df.columns = df.columns.str.strip()
+
+                dir_filter = [0, 1]  # Default to all selectors
+                if direction == '0':
+                    dir_filter = [0]
+                elif direction == '1':
+                    dir_filter = [1]
+
+                # Convert Selector column to numeric
+                df['Selector'] = pd.to_numeric(df['Selector'], errors='coerce').fillna(-1).astype(int)
+
+                # Filter by route and direction
+                filtered = df[(df['Route'] == route) &
+                              (df['Selector'].isin(dir_filter)) &
+                              (df['stop_name'] == stop)]
+
+                if not filtered.empty:
+                    stop_id = filtered.iloc[0]['stop_id']
+                    print(f"[DEBUG] Found stop_id: {stop_id} for stop {stop}")
+            except Exception as e:
+                print(f"[ERROR] Error finding stop_id: {str(e)}")
+
+        # Read the CSV file
         try:
-            print(f"[DEBUG] Looking up stop_id for stop name '{stop}'")
-            df = pd.read_csv('../static/matched_stops.csv')
+            df = pd.read_csv(csv_path)
+            print(f"[DEBUG] CSV loaded with {len(df)} rows")
+            print(f"[DEBUG] CSV columns: {df.columns.tolist()}")
+
+            # Clean column names
             df.columns = df.columns.str.strip()
 
-            # Convert direction to integer for filtering
-            # Convert direction to integer for filtering
-            dir_filter = [0, 1]  # Default to all selectors if direction is invalid
-            if direction == '0':
-                dir_filter = [0]  # Direction 1 selectors
-            elif direction == '1':
-                dir_filter = [1]  # Direction 2 selectors
+            # Create a copy to avoid SettingWithCopyWarning
+            df = df.copy()
 
-            # Filter dataframe by route, direction, and stop name
-            print(f"[DEBUG] Filtering dataframe for route = '{route}', direction = {dir_filter}, stop = '{stop}'")
-            filtered = df[(df['Route'] == route) &
-                          (df['Selector'].isin(dir_filter)) &
-                          (df['stop_name'] == stop)]
-
-            print(f"[DEBUG] Found {len(filtered)} matching rows")
-            if not filtered.empty:
-                stop_id = filtered.iloc[0]['stop_id']
-                print(f"[DEBUG] Found stop_id: {stop_id} for stop {stop}")
+            # Handle Selector column
+            if 'Selector' in df.columns:
+                df['Selector'] = pd.to_numeric(df['Selector'], errors='coerce').fillna(-1).astype(int)
+                print(f"[DEBUG] Processed Selector column")
             else:
-                print(f"[DEBUG] No matching stop found")
-        except Exception as e:
-            print(f"[ERROR] Error finding stop_id: {str(e)}")
-            print(traceback.format_exc())
+                print(f"[WARNING] 'Selector' column not found in CSV")
+        except Exception as csv_err:
+            print(f"[ERROR] Failed to process CSV: {str(csv_err)}")
+            # Create an empty map as fallback
+            bus_map = folium.Map(location=[43.455, -76.532], zoom_start=13)
+            try:
+                bus_map.save(map_path)
+            except Exception as save_err:
+                print(f"[ERROR] Failed to save fallback map: {str(save_err)}")
 
-    # Decide which direction value to use for prediction
-    prediction_direction = direction_text if direction_text else direction
-    print(f"[DEBUG] Using direction value for prediction: '{prediction_direction}'")
+            return jsonify({
+                "map_file": "static/bus_stops_map.html",
+                "error": f"Failed to process CSV: {str(csv_err)}"
+            })
 
-    # Get prediction for the selected stop
-    print(
-        f"[DEBUG] Calling get_bus_arrival_prediction with stop_id = '{stop_id}', route = '{route}', direction = '{prediction_direction}'")
-    prediction = get_bus_arrival_prediction(stop_id, route, prediction_direction, day, month, year, hour)
-    print(f"[DEBUG] Prediction result: {prediction}")
-    string_prediction = str(prediction).split(' ')[1] if ' ' in str(prediction) else str(prediction)
+        # Filter data
+        try:
+            # Filter by route
+            if route:
+                filtered_df = df[df['Route'] == route].copy()
+                print(f"[DEBUG] After route filter: {len(filtered_df)} rows")
+            else:
+                filtered_df = df.copy()
 
-    # Read and clean CSV
-    df = pd.read_csv('../static/matched_stops.csv')
-    df.columns = df.columns.str.strip()
-    df = df[df['Selector'].notnull()].copy()  # Create explicit copy
-    df['Selector'] = pd.to_numeric(df['Selector'], errors='coerce').fillna(-1).astype(int)
+            # Filter by direction
+            if direction == '0':
+                filtered_df = filtered_df[filtered_df['Selector'] == 0]
+            elif direction == '1':
+                filtered_df = filtered_df[filtered_df['Selector'] == 1]
 
-    # Apply direction-based filtering
-    if direction == '0':
-        df = df[df['Selector'].isin([0])]
-    elif direction == '1':
-        df = df[df['Selector'].isin([1])]
+            print(f"[DEBUG] After direction filter: {len(filtered_df)} rows")
 
-    df = df[df['Route'] == route]
+            # Calculate map center
+            map_center = [43.455, -76.532]  # Default center
+            if len(filtered_df) > 0 and 'stop_lat' in filtered_df.columns and 'stop_lon' in filtered_df.columns:
+                lat_values = filtered_df['stop_lat'].dropna()
+                lon_values = filtered_df['stop_lon'].dropna()
 
-    # Create folium map
-    map_center = [43.455, -76.532]
-    bus_map = folium.Map(location=map_center, zoom_start=13)
+                if len(lat_values) > 0 and len(lon_values) > 0:
+                    avg_lat = lat_values.mean()
+                    avg_lon = lon_values.mean()
+                    map_center = [avg_lat, avg_lon]
+        except Exception as filter_err:
+            print(f"[ERROR] Failed during data filtering: {str(filter_err)}")
+            filtered_df = pd.DataFrame()
+            map_center = [43.455, -76.532]  # Default center
 
-    for _, row in df.iterrows():
-        lat = row['stop_lat']
-        lon = row['stop_lon']
-        stop_name = row['stop_id']
-        popup_text = f"{row['stop_name']}<br>ID: {stop_name}<br>Lat: {lat}, Lon: {lon}"
+        # Create map
+        try:
+            bus_map = folium.Map(location=map_center, zoom_start=13)
+            print(f"[DEBUG] Created base map centered at {map_center}")
 
-        if stop == row['stop_name']:
-            folium.Marker(
-                location=[lat, lon],
-                popup=popup_text,
-                tooltip=row['stop_name'],
-                icon=folium.Icon(color='red')
-            ).add_to(bus_map)
-        else:
-            folium.Marker(
-                location=[lat, lon],
-                popup=popup_text,
-                tooltip=row['stop_name'],
-            ).add_to(bus_map)
+            # Add markers
+            marker_count = 0
+            for _, row in filtered_df.iterrows():
+                try:
+                    # Validate coordinates
+                    if 'stop_lat' not in row or 'stop_lon' not in row:
+                        continue
 
-    # Save map
-    static_folder = 'static'
-    if not os.path.exists(static_folder):
-        os.makedirs(static_folder)
-    map_path = os.path.join(static_folder, "bus_stops_map.html")
-    bus_map.save(map_path)
+                    lat = float(row['stop_lat'])
+                    lon = float(row['stop_lon'])
 
-    return jsonify({
-        "map_file": "static/bus_stops_map.html",
-        "prediction": string_prediction
-    })
+                    # Skip invalid coordinates
+                    if pd.isna(lat) or pd.isna(lon):
+                        continue
+
+                    stop_name = str(row.get('stop_name', 'Unknown Stop'))
+                    stop_id_val = str(row.get('stop_id', 'Unknown ID'))
+
+                    popup_text = f"{stop_name}<br>ID: {stop_id_val}<br>Lat: {lat}, Lon: {lon}"
+
+                    # Use red icon for selected stop
+                    if stop and stop == stop_name:
+                        folium.Marker(
+                            location=[lat, lon],
+                            popup=popup_text,
+                            tooltip=stop_name,
+                            icon=folium.Icon(color='red')
+                        ).add_to(bus_map)
+                    else:
+                        folium.Marker(
+                            location=[lat, lon],
+                            popup=popup_text,
+                            tooltip=stop_name
+                        ).add_to(bus_map)
+
+                    marker_count += 1
+                except Exception as marker_err:
+                    print(f"[ERROR] Failed to add marker for {row.get('stop_name', 'unknown')}: {str(marker_err)}")
+                    continue
+
+            print(f"[DEBUG] Added {marker_count} markers to map")
+        except Exception as map_err:
+            print(f"[ERROR] Failed to create map: {str(map_err)}")
+            bus_map = folium.Map(location=[43.455, -76.532], zoom_start=13)
+
+        # Save map
+        try:
+            bus_map.save(map_path)
+            print(f"[DEBUG] Successfully saved map to {map_path}")
+        except Exception as save_err:
+            print(f"[ERROR] Failed to save map: {str(save_err)}")
+            return jsonify({
+                "map_file": "static/bus_stops_map.html",
+                "error": f"Failed to save map: {str(save_err)}"
+            })
+
+        # Get prediction
+        prediction = "No prediction available"
+        if route and stop_id:
+            try:
+                # Decide which direction value to use for prediction
+                prediction_direction = direction_text if direction_text else direction
+                print(
+                    f"[DEBUG] Getting prediction for stop_id={stop_id}, route={route}, direction={prediction_direction}")
+
+                # Call get_bus_arrival_prediction with datetime parameters
+                prediction = get_bus_arrival_prediction(stop_id, route, prediction_direction, day, month, year, hour)
+                string_prediction = str(prediction).split(' ')[1] if ' ' in str(prediction) else str(prediction)
+
+                print(f"[DEBUG] Prediction result: {string_prediction}")
+            except Exception as pred_err:
+                print(f"[ERROR] Prediction error: {str(pred_err)}")
+
+        return jsonify({
+            "map_file": "static/bus_stops_map.html",
+            "prediction": string_prediction if 'string_prediction' in locals() else prediction,
+            "markers_count": marker_count
+        })
+
+    except Exception as e:
+        print(f"[ERROR] Unhandled exception in generate_map: {str(e)}")
+        print(traceback.format_exc())
+
+        # Always return something, even in case of errors
+        project_root = get_project_root()
+        map_path = os.path.join(project_root, 'static', 'bus_stops_map.html')
+
+        try:
+            bus_map = folium.Map(location=[43.455, -76.532], zoom_start=13)
+            bus_map.save(map_path)
+        except Exception as final_err:
+            print(f"[ERROR] Failed final fallback: {str(final_err)}")
+
+        return jsonify({
+            "map_file": "static/bus_stops_map.html",
+            "error": f"Unhandled exception: {str(e)}"
+        })
 
 
 # Test endpoint for direct prediction testing
@@ -942,9 +995,32 @@ def alerts():
 # ------------------ INITIALIZATION ------------------ #
 
 def generate_empty_map():
-    empty_map = folium.Map(location=[43.455, -76.532], zoom_start=13)
-    empty_map.save('../static/bus_stops_map.html')  # Overwrites with default
+    """Create an empty map file in the static directory"""
+    # Create the static directory if it doesn't exist
+    static_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'static'))
+    print(f"Static directory path: {static_dir}")
 
+    # Ensure the directory exists
+    if not os.path.exists(static_dir):
+        try:
+            os.makedirs(static_dir)
+            print(f"Created static directory at {static_dir}")
+        except Exception as e:
+            print(f"Error creating static directory: {e}")
+            # Fall back to current directory if we can't create the proper path
+            static_dir = os.path.join(os.path.dirname(__file__), 'static')
+            if not os.path.exists(static_dir):
+                os.makedirs(static_dir)
+
+    # Create and save the empty map
+    empty_map = folium.Map(location=[43.455, -76.532], zoom_start=13)
+    map_path = os.path.join(static_dir, 'bus_stops_map.html')
+
+    try:
+        empty_map.save(map_path)
+        print(f"Empty map created at {map_path}")
+    except Exception as e:
+        print(f"Error saving empty map: {e}")
 generate_empty_map()
 
 if __name__ == '__main__':
