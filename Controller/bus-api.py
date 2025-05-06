@@ -965,6 +965,10 @@ def passes():
 def updates():
     return safe_render_template('updates.html')
 
+@app.route('/frontend/help.html')
+def help():
+    return render_template('help.html')
+
 @app.route('/frontend/routes.html')
 def routes():
     return render_template('routes.html', map_file="static/bus_stops_map.html")
