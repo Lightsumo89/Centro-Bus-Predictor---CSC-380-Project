@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify, render_template
 import os
 import pandas as pd
 import folium
-from database import db_connection_required, get_all_stops, get_all_routes, get_all_buses
+from database import db_connection_required, get_all_stops, get_all_routes, get_all_buses, get_db_connection
 import pandas as pd
 import folium
 import numpy as np
@@ -10,8 +10,9 @@ from hmmlearn import hmm
 from scipy.stats import multivariate_normal
 import mysql.connector
 import jinja2
-from datetime import datetime
+from datetime import datetime, timedelta
 from error_handlers import register_error_handlers
+import traceback
 
 DATABASE = {
     "host": "pi.cs.oswego.edu",
@@ -28,6 +29,159 @@ app = Flask(__name__,
 
 # Register error handlers
 register_error_handlers(app)
+
+# Helper prediction functions
+def select_table1(route):  # need to account for both directions
+    db = get_db_connection()
+    if not db:
+        print("Database connection failed")
+        return []
+
+    try:
+        cursor = db.cursor(dictionary=True)
+        select_query = "SELECT * FROM LastArrival2 WHERE Route = %s"
+        cursor.execute(select_query, (route,))
+        rows = cursor.fetchall()
+        return rows
+    except Exception as e:
+        print(f"Error in select_table1: {e}")
+        return []
+    finally:
+        if db.is_connected():
+            cursor.close()
+            db.close()
+
+
+# Replace the existing select_table2 function with this one
+def select_table2(stop_id, route, direction):
+    db = get_db_connection()
+    if not db:
+        print("Database connection failed")
+        return []
+
+    try:
+        cursor = db.cursor(dictionary=True)
+        select_query = "SELECT * FROM Delays_n WHERE StopID = %s AND Route = %s AND Direction = %s"
+        cursor.execute(select_query, (stop_id, route, direction))
+        rows = cursor.fetchall()
+        return rows
+    except Exception as e:
+        print(f"Error in select_table2: {e}")
+        return []
+    finally:
+        if db.is_connected():
+            cursor.close()
+            db.close()
+
+
+def get_bus_arrival_prediction(stop_id, route, direction):
+    direction = str(direction)
+    stop_id = str(stop_id)
+    route = str(route)
+
+    last_arrivals = select_table1(route)  # get the stops of the last arrived buses on the route
+
+    predicted_times = []
+
+    if len(last_arrivals) == 0:
+        print("no bus on route")
+
+    else:
+        rows_user_input = select_table2(stop_id, route, direction)
+
+        ctr = 0
+        total_sum = 0
+
+        for last_arrival in last_arrivals:
+            print(f"Last Arrival: {last_arrival.get('ArriveTime')}")
+
+            last_arrival_time = last_arrival.get("ArriveTime")
+
+            if last_arrival.get("StopID") == stop_id:  # last arrival is the same as user inputted stop
+                # get all of the arrivals for that stop and check for same day and ID greater than 1
+                print(f"Rows User Input 1: {rows_user_input}")
+                print(f"Rows User Input 2: {rows_user_input}")
+
+                for row_user_input1 in rows_user_input:
+                    for row_user_input2 in rows_user_input:
+                        if row_user_input2.get("ID") == row_user_input1.get("ID") + 1 and row_user_input1.get(
+                                "ArriveTime").date() == row_user_input2.get("ArriveTime").date():
+                            ctr += 1
+
+                            total_sum += (row_user_input2.get("ArriveTime") - row_user_input1.get(
+                                "ArriveTime")).total_seconds()
+
+                            print(f"User Input 1 ArriveTime: {row_user_input1.get('ArriveTime')}")
+                            print(f"User Input 2 ArriveTime: {row_user_input2.get('ArriveTime')}")
+
+                            print(
+                                f"Difference: {(row_user_input2.get('ArriveTime') - row_user_input1.get('ArriveTime')).total_seconds()}, User Input 1 ID: {row_user_input1.get('ID')}, User Input 2 ID: {row_user_input2.get('ID')}")
+
+                            break
+
+
+
+            else:
+                last_arrival_time = last_arrival.get("ArriveTime")
+
+                rows_last_arrival = select_table2(last_arrival.get("StopID"), last_arrival.get("Route"),
+                                                  last_arrival.get("Direction"))
+
+                print(f"Rows Last Arrival: {rows_last_arrival}")
+                print(f"Rows User Input: {rows_user_input}")
+
+                for row_last_arrival in rows_last_arrival:
+                    for row_user_input in rows_user_input:  # could do a check for an id one less or more for different directions for multiple round trips
+                        if row_user_input.get("ID") == row_last_arrival.get("ID") and row_user_input.get(
+                                "ArriveTime") > row_last_arrival.get("ArriveTime"):
+                            ctr += 1
+
+                            total_sum += (row_user_input.get("ArriveTime") - row_last_arrival.get(
+                                "ArriveTime")).total_seconds()
+
+                            print(f"Last Arrival Row ArriveTime: {row_last_arrival.get('ArriveTime')}")
+                            print(f"User Input Row ArriveTime: {row_user_input.get('ArriveTime')}")
+
+                            print(
+                                f"Difference: {(row_user_input.get('ArriveTime') - row_last_arrival.get('ArriveTime')).total_seconds()}, User Input ID: {row_user_input.get('ID')}, Last Arrival ID: {row_last_arrival.get('ID')}")
+
+                            break
+
+                        elif row_user_input.get("ID") > row_last_arrival.get("ID"):
+                            break
+
+                if ctr == 0:
+                    # get consecutive round trips, have to check for a row_last_arrival that has an ID 1 greater than a row_user_input]
+                    for row_user_input in rows_user_input:
+                        for row_last_arrival in rows_last_arrival:
+                            if (row_user_input.get("ID") == row_last_arrival.get("ID") + 1 and
+                                    row_user_input.get("ArriveTime") > row_last_arrival.get("ArriveTime") and
+                                    row_user_input.get("ArriveTime").date() == row_last_arrival.get("ArriveTime").date()
+                            ):
+                                ctr += 1
+
+                                total_sum += (row_user_input.get("ArriveTime") - row_last_arrival.get(
+                                    "ArriveTime")).total_seconds()
+
+                                print(f"Last Arrival Row ArriveTime: {row_last_arrival.get('ArriveTime')}")
+                                print(f"User Input Row ArriveTime: {row_last_arrival.get('ArriveTime')}")
+
+                                print(
+                                    f"Difference: {(row_user_input.get('ArriveTime') - row_last_arrival.get('ArriveTime')).total_seconds()}, User Input ID: {row_user_input.get('ID')}, Last Arrival ID: {row_last_arrival.get('ID')}")
+
+                                break
+
+            if ctr == 0:
+                print("no data")
+
+            else:
+                predicted_time = last_arrival_time + timedelta(seconds=(total_sum / ctr))
+
+                print(f"Predicted Time: {predicted_time}")
+
+                predicted_times.append(predicted_time)
+
+    return predicted_times
 
 
 def get_stop_A(stop, route, direction):
@@ -96,76 +250,23 @@ def get_buses(conn):
     buses = get_all_buses(conn, route_id, stop_id)
     return jsonify(buses)
 
+
+
 @app.route('/prediction/<input>', methods=['GET'])
-@db_connection_required
-def get_prediction_placeholder(conn, input):
-    return jsonify({"error": "No API Endpoint"}), 500
-
-'''
-# Original prediction endpoint from paste.txt - Commented out due to incompleteness
-@app.route('/prediction/<stop>/<direction>/<route>', methods=['GET'])
-def get_prediction(stop, route, direction):
-
-
-    data = np.array([
-    [1.0, 2.0], [1.3, 2.1], [1.2, 2.0], [1.7, 2.4], [1.4, 2.2], [2.0, 3.1], [1.3, 2.0], [2.1, 3.2], [2.4, 3.2], [2.2, 3.0], [1.9, 2.5], [1.5, 2.4], [2.3, 3.2], [2.5, 3.5], [1.6, 2.7], [1.3, 2.4],
-    [1.4, 2.2], [2.3, 3.4], [2.7, 3.4], [2.1, 3.0], [2.3, 3.0], [2.2, 2.9], [1.4, 2.0], [1.3, 2.1] 
-    ])
-
-    data = get_data(stop, route, direction)
-
-    given_delay_A = 
-
-    predicted_delay_B = predict_delay_B(given_delay_A, data)
-'''
-
-
-@app.route('/prediction/<stop>/<direction>/<route>', methods=['GET'])
-def get_prediction(stop, direction, route):
-    return jsonify({
-        "message": "Prediction functionality is under development",
-        "stop": stop,
-        "direction": direction,
-        "route": route
-    })
-
-
-@app.route('/generate_map', methods=['POST'])
-def generate_map():
-    # Retrieve user input from the form
-    stop = request.form.get('stop')
-    route = request.form.get('route')
-    direction = request.form.get('direction')
-
+def get_prediction_endpoint(input):
+    # Parse the input parameters - assuming input format is "route/stop_id/direction"
+    print(f"[DEBUG] Prediction endpoint called with input: '{input}'")
     try:
-        df = pd.read_csv('/Controller/matched_stops.csv')
-        df.columns = df.columns.str.strip()
-
-        map_center = [43.455, -76.532]  # Oswego, NY
-        bus_map = folium.Map(location=map_center, zoom_start=13)
-
-        for index, row in df.iterrows():
-            if route == row['Route']:
-                lat = row['stop_lat']
-                lon = row['stop_lon']
-                stop_name = row['stop_id']
-
-                folium.Marker(
-                    location=[lat, lon],
-                    popup=f"{stop_name}<br>Lat: {lat}, Lon: {lon}",  # Pop up thingy
-                ).add_to(bus_map)
-
-        static_folder = 'static'
-        if not os.path.exists(static_folder):
-            os.makedirs(static_folder)
-
-        bus_map.save(os.path.join(static_folder, "bus_stops_map.html"))
-        print("Map saved as bus_stops_map.html")
-
-        # Make new map
-        return render_template('routes.html', map_file="static/bus_stops_map.html")
+        route, stop_id, direction = input.split('/')
+        print(f"[DEBUG] Parsed input: route = '{route}', stop_id = '{stop_id}', direction = '{direction}'")
+        prediction = get_bus_arrival_prediction(stop_id, route, direction)
+        print(f"[DEBUG] Prediction result: {prediction}")
+        return jsonify({"prediction": prediction})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        error_msg = f"Error in prediction endpoint: {str(e)}"
+        print(f"[ERROR] {error_msg}")
+        print(traceback.format_exc())
+        return jsonify({"error": error_msg}), 500
 
 
 @app.route('/')
@@ -193,77 +294,339 @@ def safe_render_template(template_name):
             raise
 # ------------------ NEW MAP + ROUTE ROUTES ------------------ #
 
-@app.route('/frontend/routes.html')
-def routes():
-    return render_template('routes.html', map_file="static/bus_stops_map.html")
 
 @app.route('/get_stops/<route>', methods=['GET'])
 def get_stops_for_route(route):
-    df = pd.read_csv('matched_stops.csv')
+    direction = request.args.get('direction')  # Accept direction as a query param
+    df = pd.read_csv('../static/matched_stops.csv')
+    print(f"[DEBUG] Direction from query: {direction}")
     df.columns = df.columns.str.strip()
-    stops = df[df['Route'] == route]['stop_name'].tolist()
-    return jsonify(stops)
+
+    # First filter by route
+    filtered_df = df[df['Route'] == route].copy()
+
+    # Convert Selector to numeric, handling NaN values
+    filtered_df['Selector'] = pd.to_numeric(filtered_df['Selector'], errors='coerce').fillna(-1).astype(int)
+
+    # Filter by direction parameter
+    if direction:
+        print(f"[DEBUG] Filtering by direction: {direction}")
+        if direction == 'FROM HUB' or direction == 'FROM DOWNTOWN':
+            filtered_df = filtered_df[filtered_df['Selector'] == 0]
+        elif direction == 'TO HUB' or direction == 'TO DOWNTOWN':
+            filtered_df = filtered_df[filtered_df['Selector'] == 1]
+        else:
+            # Try to parse the direction as a number
+            try:
+                dir_num = int(direction)
+                filtered_df = filtered_df[filtered_df['Selector'] == dir_num]
+            except ValueError:
+                # If not a number, try to match with Direction1 or Direction2
+                filtered_df = filtered_df[
+                    (filtered_df['Direction1'] == direction) |
+                    (filtered_df['Direction2'] == direction)
+                    ]
+
+    # Set DirectionName based on Selector value
+    filtered_df['DirectionName'] = filtered_df.apply(
+        lambda row: row['Direction1'] if row['Selector'] == 0 else row['Direction2'],
+        axis=1
+    )
+
+    # Select only the needed columns and remove duplicates
+    stops = filtered_df[['stop_name', 'stop_id', 'DirectionName', 'Selector']].drop_duplicates()
+    stops_list = stops.to_dict(orient='records')
+
+    print(f"[DEBUG] Returning {len(stops_list)} stops for route {route} with direction {direction}")
+    return jsonify(stops_list)
+
 
 @app.route('/get_directions/<route_name>', methods=['GET'])
 def get_directions(route_name):
-    df = pd.read_csv('matched_stops.csv')  # adjust the path
+    df = pd.read_csv('../static/matched_stops.csv')
+    df.columns = df.columns.str.strip()
     route_df = df[df['Route'] == route_name]
 
     if route_df.empty:
         return jsonify([])
 
-    directions = set()
-    directions.update(route_df['Direction1'].dropna().unique())
-    directions.update(route_df['Direction2'].dropna().unique())
+    directions = []
+    direction1 = route_df['Direction1'].dropna().iloc[0] if 'Direction1' in route_df.columns and not route_df['Direction1'].dropna().empty else "Direction 1"
+    direction2 = route_df['Direction2'].dropna().iloc[0] if 'Direction2' in route_df.columns and not route_df['Direction2'].dropna().empty else "Direction 2"
 
-    return jsonify(sorted(directions))
+    directions.append({"value": "0", "name": direction1})
+    directions.append({"value": "1", "name": direction2})
 
+    return jsonify(directions)
+
+"""
 @app.route('/frontend/generate_map', methods=['POST'])
 def generate_map():
     data = request.get_json()
 
     route = data.get('route')
     direction = data.get('direction')
+    direction_text = data.get('directionText')
     stop = data.get('stop')
+    stop_id = data.get('stopId')
 
-    df = pd.read_csv('matched_stops.csv')
+    print(
+        f"[DEBUG] Parsed request: route = '{route}', direction = '{direction}', direction_text = '{direction_text}', stop = '{stop}', stop_id = '{stop_id}'")
+
+    # If stop_id is None, try to find it using route, direction, and stop name
+    if stop_id is None and stop is not None:
+        try:
+            print(f"[DEBUG] Looking up stop_id for stop name '{stop}'")
+            df = pd.read_csv('../static/matched_stops.csv')
+            df.columns = df.columns.str.strip()
+
+            # Convert direction to integer for filtering
+            # Convert direction to integer for filtering
+            dir_filter = [0, 1]  # Default to all selectors if direction is invalid
+            if direction == '0':
+                dir_filter = [0]  # Direction 1 selectors
+            elif direction == '1':
+                dir_filter = [1]  # Direction 2 selectors
+
+            # Filter dataframe by route, direction, and stop name
+            print(f"[DEBUG] Filtering dataframe for route = '{route}', direction = {dir_filter}, stop = '{stop}'")
+            filtered = df[(df['Route'] == route) &
+                          (df['Selector'].isin(dir_filter)) &
+                          (df['stop_name'] == stop)]
+
+            print(f"[DEBUG] Found {len(filtered)} matching rows")
+            if not filtered.empty:
+                stop_id = filtered.iloc[0]['stop_id']
+                print(f"[DEBUG] Found stop_id: {stop_id} for stop {stop}")
+            else:
+                print(f"[DEBUG] No matching stop found")
+        except Exception as e:
+            print(f"[ERROR] Error finding stop_id: {str(e)}")
+            print(traceback.format_exc())
+
+    # Decide which direction value to use for prediction
+    prediction_direction = direction_text if direction_text else direction
+    print(f"[DEBUG] Using direction value for prediction: '{prediction_direction}'")
+
+    # Get prediction for the selected stop
+    print(
+        f"[DEBUG] Calling get_bus_arrival_prediction with stop_id = '{stop_id}', route = '{route}', direction = '{prediction_direction}'")
+    prediction = get_bus_arrival_prediction(stop_id, route, prediction_direction)
+    print(f"[DEBUG] Prediction result: {prediction}")
+
+    # Read and clean CSV
+    df = pd.read_csv('../static/matched_stops.csv')
     df.columns = df.columns.str.strip()
+    df = df[df['Selector'].notnull()].copy()  # Create explicit copy
+    df['Selector'] = pd.to_numeric(df['Selector'], errors='coerce').fillna(-1).astype(int)
 
+    # Apply direction-based filtering
+    if direction == '0':
+        df = df[df['Selector'].isin([0])]
+    elif direction == '1':
+        df = df[df['Selector'].isin([1])]
+
+    df = df[df['Route'] == route]
+
+    # Create folium map
     map_center = [43.455, -76.532]
     bus_map = folium.Map(location=map_center, zoom_start=13)
 
-    for index, row in df.iterrows():
-        if route == row['Route']:
-            lat = row['stop_lat']
-            lon = row['stop_lon']
-            stop_name = row['stop_id']
+    for _, row in df.iterrows():
+        lat = row['stop_lat']
+        lon = row['stop_lon']
+        stop_name = row['stop_id']
+        popup_text = f"{row['stop_name']}<br>ID: {stop_name}<br>Lat: {lat}, Lon: {lon}"
 
+        if stop == row['stop_name']:
             folium.Marker(
                 location=[lat, lon],
-                popup=f"{stop_name}<br>Lat: {lat}, Lon: {lon}",
+                popup=popup_text,
+                tooltip=row['stop_name'],
+                icon=folium.Icon(color='red')
+            ).add_to(bus_map)
+        else:
+            folium.Marker(
+                location=[lat, lon],
+                popup=popup_text,
+                tooltip=row['stop_name'],
             ).add_to(bus_map)
 
+    # Save map
     static_folder = 'static'
     if not os.path.exists(static_folder):
         os.makedirs(static_folder)
-
     map_path = os.path.join(static_folder, "bus_stops_map.html")
     bus_map.save(map_path)
 
     return jsonify({
         "map_file": "static/bus_stops_map.html",
-        "prediction": f"Next bus arrives in 5 minutes for {stop or 'selected stop'}"
-    })
-
-@app.route('/prediction/<stop>/<direction>/<route>', methods=['GET'])
-def get_prediction(stop: str, direction: str, route: str):
-    prediction = f"Prediction for stop '{stop}' on route '{route}' heading {direction} is 'Next bus arrives in 5 minutes'"
-    return jsonify({
-        "stop": stop,
-        "direction": direction,
-        "route": route,
         "prediction": prediction
     })
+"""
+
+def get_project_root():
+    """Returns the absolute path to the project root directory"""
+    # Current file is in the Controller directory
+    controller_dir = os.path.dirname(os.path.abspath(__file__))
+    # Project root is one level up
+    return os.path.dirname(controller_dir)
+
+
+# Then update the relevant part of your generate_map function
+@app.route('/frontend/generate_map', methods=['POST'])
+def generate_map():
+    data = request.get_json()
+
+    route = data.get('route')
+    direction = data.get('direction')
+    direction_text = data.get('directionText')
+    stop = data.get('stop')
+    stop_id = data.get('stopId')
+
+    print(
+        f"[DEBUG] Parsed request: route = '{route}', direction = '{direction}', direction_text = '{direction_text}', stop = '{stop}', stop_id = '{stop_id}'")
+
+    # Get prediction for the selected stop
+    prediction_direction = direction_text if direction_text else direction
+    print(f"[DEBUG] Using direction value for prediction: '{prediction_direction}'")
+
+    try:
+        prediction = get_bus_arrival_prediction(stop_id, route, prediction_direction)
+        print(f"[DEBUG] Prediction result: {prediction}")
+    except Exception as e:
+        print(f"[ERROR] Prediction error: {str(e)}")
+        prediction = []
+
+    # Get the absolute path to matched_stops.csv
+    project_root = get_project_root()
+    csv_path = os.path.join(project_root, 'static', 'matched_stops.csv')
+
+    print(f"[DEBUG] Reading CSV from: {csv_path}")
+    print(f"[DEBUG] CSV file exists: {os.path.exists(csv_path)}")
+
+    try:
+        # Read CSV file
+        df = pd.read_csv(csv_path)
+        print(f"[DEBUG] CSV loaded successfully with {len(df)} rows")
+        print(f"[DEBUG] CSV columns: {df.columns.tolist()}")
+
+        # Clean column names
+        df.columns = df.columns.str.strip()
+
+        # Filter by route
+        route_df = df[df['Route'] == route].copy()
+        print(f"[DEBUG] After route filter: {len(route_df)} rows")
+
+        if len(route_df) == 0:
+            print(f"[WARNING] No stops found for route {route}")
+
+        # Handle Selector column for direction filtering
+        if 'Selector' in route_df.columns:
+            route_df['Selector'] = pd.to_numeric(route_df['Selector'], errors='coerce').fillna(0).astype(int)
+
+            if direction == '0':
+                route_df = route_df[route_df['Selector'] == 0]
+            elif direction == '1':
+                route_df = route_df[route_df['Selector'] == 1]
+
+            print(f"[DEBUG] After direction filter: {len(route_df)} rows")
+
+        # Create map
+        map_center = [43.455, -76.532]  # Default center
+
+        # If we have stops, use their average position
+        if len(route_df) > 0:
+            avg_lat = route_df['stop_lat'].mean()
+            avg_lon = route_df['stop_lon'].mean()
+            if not (pd.isna(avg_lat) or pd.isna(avg_lon)):
+                map_center = [avg_lat, avg_lon]
+
+        bus_map = folium.Map(location=map_center, zoom_start=13)
+
+        # Check if required columns exist
+        required_columns = ['stop_lat', 'stop_lon', 'stop_name', 'stop_id']
+        missing_columns = [col for col in required_columns if col not in route_df.columns]
+        if missing_columns:
+            print(f"[ERROR] CSV missing required columns: {missing_columns}")
+            # Print sample rows to debug
+            print(f"[DEBUG] Sample data: {route_df.head(1).to_dict() if len(route_df) > 0 else 'No data'}")
+        else:
+            # Add markers for each stop
+            marker_count = 0
+            for _, row in route_df.iterrows():
+                try:
+                    lat = float(row['stop_lat'])
+                    lon = float(row['stop_lon'])
+
+                    # Skip invalid coordinates
+                    if pd.isna(lat) or pd.isna(lon):
+                        continue
+
+                    stop_name = str(row['stop_name'])
+                    stop_id_val = str(row['stop_id'])
+
+                    popup_text = f"{stop_name}<br>ID: {stop_id_val}<br>Lat: {lat}, Lon: {lon}"
+
+                    # Use red icon for the selected stop
+                    if stop and stop == stop_name:
+                        folium.Marker(
+                            location=[lat, lon],
+                            popup=popup_text,
+                            tooltip=stop_name,
+                            icon=folium.Icon(color='red')
+                        ).add_to(bus_map)
+                    else:
+                        folium.Marker(
+                            location=[lat, lon],
+                            popup=popup_text,
+                            tooltip=stop_name
+                        ).add_to(bus_map)
+
+                    marker_count += 1
+                except Exception as marker_err:
+                    print(f"[ERROR] Failed to add marker for {row.get('stop_name', 'unknown')}: {str(marker_err)}")
+                    continue
+
+            print(f"[DEBUG] Added {marker_count} markers to map")
+
+        # Save map
+        map_path = os.path.join(project_root, 'static', 'bus_stops_map.html')
+        bus_map.save(map_path)
+
+        return jsonify({
+            "map_file": "static/bus_stops_map.html",
+            "prediction": prediction,
+            "markers_count": marker_count if 'marker_count' in locals() else 0
+        })
+
+    except Exception as e:
+        print(f"[ERROR] Map generation error: {str(e)}")
+        print(traceback.format_exc())
+
+        # Return a basic map with no markers
+        bus_map = folium.Map(location=[43.455, -76.532], zoom_start=13)
+        map_path = os.path.join(project_root, 'static', 'bus_stops_map.html')
+        bus_map.save(map_path)
+
+        return jsonify({
+            "map_file": "static/bus_stops_map.html",
+            "prediction": prediction,
+            "error": str(e)
+        })
+
+# Test endpoint for direct prediction testing
+@app.route('/test-prediction/<stop_id>/<route>/<direction>')
+def test_prediction(stop_id, route, direction):
+    print(f"[DEBUG] Test prediction called with stop_id={stop_id}, route={route}, direction={direction}")
+    result = get_bus_arrival_prediction(stop_id, route, direction)
+    return jsonify({
+        "stop_id": stop_id,
+        "route": route,
+        "direction": direction,
+        "result": result
+    })
+
 
 @app.route('/frontend/index.html')
 def index():
@@ -304,10 +667,13 @@ def passes():
 def updates():
     return safe_render_template('updates.html')
 
-
 @app.route('/frontend/routes.html')
 def routes():
-    return safe_render_template('routes.html')
+    return render_template('routes.html', map_file="static/bus_stops_map.html")
+
+# @app.route('/frontend/routes.html')
+# def routes():
+#     return safe_render_template('routes.html')
 
 @app.route('/frontend/plan-your-trip.html')
 def plan_your_trip():
@@ -332,7 +698,7 @@ def alerts():
 
 def generate_empty_map():
     empty_map = folium.Map(location=[43.455, -76.532], zoom_start=13)
-    empty_map.save('static/bus_stops_map.html')  # Overwrites with default
+    empty_map.save('../static/bus_stops_map.html')  # Overwrites with default
 
 generate_empty_map()
 
