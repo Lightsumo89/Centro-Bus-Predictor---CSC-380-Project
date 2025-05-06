@@ -17,6 +17,7 @@ jobs:
         host: ${{ secrets.HOST }}
         username: ${{ secrets.USERNAME }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script_stop: false
         script: |
           # Create project directory if it doesn't exist
           mkdir -p ~/bus-tracking-app
