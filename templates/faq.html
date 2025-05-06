@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Centro - Public Transportation</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <header>
+    <div class="header-container">
+    <div class="nav-extra">
+    <div class="menu-container" id="menuContainer">
+    <button class="menu-btn" id="menuBtn">MENU</button>
+    <ul class="dropdown-menu">
+    <li class="dropdown-item">
+      <a href="{{ url_for('oswego_team') }}">OSWEGO Student Team</a>
+    </li>
+    <li class="dropdown-item">
+    <a href="{{ url_for('faq') }}">FAQs</a>
+    </li>
+    <li class="dropdown-item">
+    <a href="{{ url_for('routes') }}">ROUTES &amp; SCHEDULES</a>
+    </li>
+    </ul>
+    </div>
+    </div>
+    <div class="logo-container">
+    <a href="{{ url_for('index') }}">
+    <img src="{{ url_for('static', filename='images/logo.jpg') }}" alt="Centro Logo">
+    </a>
+    </div>
+    </div>
+    </header>
+
+  <main>
+    <section class="faq-section">
+      <h1 class="faq-title">Centro - Frequently Asked Questions</h1>
+  
+      <div class="faq-item">
+        <h2>What are the hours of operation?</h2>
+        <p>Centro buses typically operate from 6:00 AM to 10:00 PM Monday through Saturday. Services may vary on holidays or weekends. Please check our website or app for real-time schedules.</p>
+      </div>
+  
+      <div class="faq-item">
+        <h2>What areas does Centro serve?</h2>
+        <p>Centro serves a wide range of areas including Syracuse, Onondaga County, and surrounding cities. For a complete list of routes, please visit our Routes page or check our interactive map.</p>
+      </div>
+  
+      <div class="faq-item">
+        <h2>How do I purchase tickets?</h2>
+        <p>Tickets can be purchased onboard the bus, at Centro ticket vending machines, or via our mobile app. We accept cash, credit/debit cards, and digital wallets. Discounts are available for seniors, students, and people with disabilities.</p>
+      </div>
+  
+      <div class="faq-item">
+        <h2>Can I track my bus in real-time?</h2>
+        <p>Yes! You can track your bus in real-time using our mobile app or by visiting our website. Check the estimated arrival times for your nearest stop to ensure you don't miss your bus.</p>
+      </div>
+  
+      <div class="faq-item">
+        <h2>What should I do if I lose an item on the bus?</h2>
+        <p>If you lose an item on the bus, please contact our Lost & Found department immediately. You can reach us by calling (315) 442-3333 or submitting an online report.</p>
+      </div>
+  
+      <div class="faq-item">
+        <h2>Are there holiday schedule changes?</h2>
+        <p>Yes, during major holidays like New Year's Day, Memorial Day, Labor Day, and Christmas, our buses follow a modified schedule. For specific holiday schedules, please check our website or app for updates.</p>
+      </div>
+  
+      <div class="faq-item">
+        <h2>How do I contact Centro customer service?</h2>
+        <p>You can contact our customer service team Monday through Friday from 8:00 AM to 5:00 PM by calling (315) 442-3333 or emailing customerservice@centro.org. For emergencies or urgent issues, please contact us immediately.</p>
+      </div>
+  
+      <div class="faq-item">
+        <h2>What safety measures are in place due to COVID-19?</h2>
+        <p>Centro has implemented several health and safety protocols to protect passengers and staff. These include mandatory face coverings, enhanced cleaning procedures, and social distancing where possible. For the latest updates, please visit our COVID-19 Information page.</p>
+      </div>
+  
+      <div class="faq-item">
+        <h2>Does Centro have any eco-friendly initiatives?</h2>
+        <p>Yes! Centro is committed to sustainability and has adopted green initiatives such as hybrid buses and eco-friendly practices across our operations. We are continually working to reduce our carbon footprint.</p>
+      </div>
+    </section>
+  
+    <section class="resources-section">
+      <h2 class="resources-title">More Resources</h2>
+      <p>For further information, visit the following Centro resources:</p>
+      <ul class="resources-list">
+        <li><a href="routes.html" target="_blank">Centro Routes</a></li>
+        <li><a href="https://www.centro.org/how-to-ride/transit-tools/mobile-app" target="_blank">Download the Centro App</a></li>
+        <li><a href="https://www.centro.org/footer-links/lost-found" target="_blank">Lost & Found</a></li>
+        <li><a href="https://www.centro.org/alerts" target="_blank">Service Alerts & News</a></li>
+        <li><a href="https://www.centro.org/about/contact-us" target="_blank">Contact Customer Service</a></li>
+        <li><a href="https://www.centro.org/fares-passes/fares-and-passes#top" target="_blank">Fares & Passes</a></li>
+      </ul>
+    </section>
+  </main>
+
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

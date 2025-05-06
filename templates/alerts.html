@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Centro - Public Transportation</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <header>
+        <div class="header-container">
+        <div class="nav-extra">
+        <div class="menu-container" id="menuContainer">
+        <button class="menu-btn" id="menuBtn">MENU</button>
+        <ul class="dropdown-menu">
+        <li class="dropdown-item">
+          <a href="{{ url_for('oswego_team') }}">OSWEGO Student Team</a>
+        </li>
+        <li class="dropdown-item">
+        <a href="{{ url_for('faq') }}">FAQs</a>
+        </li>
+        <li class="dropdown-item">
+        <a href="{{ url_for('routes') }}">ROUTES &amp; SCHEDULES</a>
+        </li>
+        </ul>
+        </div>
+        </div>
+        <div class="logo-container">
+        <a href="{{ url_for('index') }}">
+        <img src="{{ url_for('static', filename='images/logo.jpg') }}" alt="Centro Logo">
+        </a>
+        </div>
+        </div>
+        </header>
+
+<div class="container">
+    <h1>Centro Bus Service Alerts</h1>
+
+    <div class="controls">
+        <label for="route-select">Select a Route:</label>
+        <select id="route-select">
+            <option value="ALL">All Routes</option>
+            <option value="OSW10">OSW10</option>
+            <option value="OSW11">OSW11</option>
+            <option value="OSW1A">OSW1A</option>
+            <option value="OSW46">OSW46</option>
+            <option value="SY74">SY74</option>
+            <option value="SY76">SY76</option>
+            <option value="SY80">SY80</option>
+        </select>
+
+        <button onclick="showAlerts()">Show Alerts</button>
+        <button id="refresh-btn" onclick="refreshData()">Refresh Data</button>
+    </div>
+
+    <div id="refresh-status" class="status-message"></div>
+    <div id="alerts" class="alert-list"></div>
+</div>
+
+    <script>
+    let alertsData = [];
+
+    // Load alerts data when page loads
+    loadAlertsData();
+
+    function loadAlertsData() {
+        fetch('/static/alerts.json')
+            .then(res => res.json())
+            .then(data => {
+                alertsData = data;
+                console.log("Alerts data loaded", alertsData);
+            })
+            .catch(err => {
+                console.error("Error loading alerts data:", err);
+                document.getElementById('alerts').innerHTML = "<p>Error loading alerts data. Please try refreshing.</p>";
+            });
+    }
+
+    function showAlerts() {
+        const selectedRoute = document.getElementById('route-select').value;
+        const alertsDiv = document.getElementById('alerts');
+        alertsDiv.innerHTML = '';
+
+        const filtered = selectedRoute === "ALL"
+            ? alertsData
+            : alertsData.filter(alert => alert.route_id === selectedRoute);
+
+        if (filtered.length === 0) {
+            alertsDiv.innerHTML = "<p>No alerts found for the selected route.</p>";
+            return;
+        }
+
+        filtered.forEach(alert => {
+            const container = document.createElement('div');
+            container.className = "alert-item";
+
+            const routeHeader = document.createElement('h3');
+            routeHeader.textContent = `Route: ${alert.route_id}`;
+            container.appendChild(routeHeader);
+
+            const details = document.createElement('p');
+            details.innerHTML = `<strong>Alert:</strong><br>${formatDetails(alert.alert_details)}`;
+            container.appendChild(details);
+
+            const cause = document.createElement('p');
+            cause.innerHTML = `<strong>Cause:</strong> ${alert.alert_cause.replace("Cause: ", "")}`;
+            container.appendChild(cause);
+
+            alertsDiv.appendChild(container);
+        });
+    }
+
+    function formatDetails(text) {
+        return text
+            .replace(/Effective:/gi, "<br><strong>Effective:</strong>")
+            .replace(/OUTBOUND:/gi, "<br><strong>Outbound:</strong>")
+            .replace(/INBOUND:/gi, "<br><strong>Inbound:</strong>")
+            .replace(/Affecting:/gi, "<br><strong>Affecting:</strong>")
+            .replace(/DETOUR:/gi, "<strong>Detour:</strong>")
+            .replace(/([A-Z]{2}\s?\d{2,3}):/g, "<br><strong>Route:</strong> $1")
+            .replace(/\s{2,}/g, ' ')
+            .trim();
+    }
+
+    function refreshData() {
+        const statusDiv = document.getElementById('refresh-status');
+        statusDiv.innerHTML = "Refreshing data from database...";
+        statusDiv.className = "status-message loading";
+
+        // Call the refresh endpoint
+        fetch('/refresh')
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === "success") {
+                    statusDiv.innerHTML = "✅ " + data.message;
+                    statusDiv.className = "status-message success";
+
+
+                    loadAlertsData();
+
+
+                    setTimeout(() => {
+                        showAlerts();
+                    }, 500);
+                } else {
+                    statusDiv.innerHTML = "⚠️ " + data.message;
+                    statusDiv.className = "status-message warning";
+                }
+            })
+            .catch(error => {
+                console.error("Error refreshing data:", error);
+                statusDiv.innerHTML = "❌ Failed to refresh data. Please try again.";
+                statusDiv.className = "status-message error";
+            });
+    }
+</script>
+
+<footer>
+    <div class="footer-container">
+      <div class="footer-info">
+        <p>&copy; Oswego Team D. All rights reserved. Contact - Monday - Friday: 8:00 AM - 5:00 PM Phone: (315) 442-3333</p>
+      </div>
+    </div>
+</footer>
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

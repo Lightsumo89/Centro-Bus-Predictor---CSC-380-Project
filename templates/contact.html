@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Contact Us - Centro</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <header>
+    <div class="header-container">
+    <div class="nav-extra">
+    <div class="menu-container" id="menuContainer">
+    <button class="menu-btn" id="menuBtn">MENU</button>
+    <ul class="dropdown-menu">
+    <li class="dropdown-item">
+      <a href="{{ url_for('oswego_team') }}">OSWEGO Student Team</a>
+    </li>
+    <li class="dropdown-item">
+    <a href="{{ url_for('faq') }}">FAQs</a>
+    </li>
+    <li class="dropdown-item">
+    <a href="{{ url_for('routes') }}">ROUTES &amp; SCHEDULES</a>
+    </li>
+    </ul>
+    </div>
+    </div>
+    <div class="logo-container">
+    <a href="{{ url_for('index') }}">
+    <img src="{{ url_for('static', filename='images/logo.jpg') }}" alt="Centro Logo">
+    </a>
+    </div>
+    </div>
+    </header>
+
+  <main>
+    <section class="contact-section">
+      <div class="contact-content">
+        <h1>Contact Us</h1>
+        <p>If you have any questions, feedback, or need help, feel free to reach out to us.</p>
+        <div class="contact-info">
+          <p><strong>Email:</strong> support@centrotransit.com</p>
+          <p><strong>Phone:</strong> (315) 442-3333</p>
+          <p><strong>Address:</strong> 123 Transit Lane, Oswego, NY 13126</p>
+          <p><strong>Hours:</strong> Monday - Friday: 8:00 AM - 5:00 PM</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="footer-container">
+      <div class="footer-info">
+        <p>&copy; Oswego Team D. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
