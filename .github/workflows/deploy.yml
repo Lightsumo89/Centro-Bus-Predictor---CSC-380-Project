@@ -11,13 +11,12 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Deploy to server
+    - name: Deploy to server - Part 1 (Setup and Install)
       uses: appleboy/ssh-action@master
       with:
         host: ${{ secrets.HOST }}
         username: ${{ secrets.USERNAME }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
-        script_stop: false
         script: |
           # Create project directory if it doesn't exist
           mkdir -p ~/bus-tracking-app
@@ -88,42 +87,60 @@ jobs:
           export PYTHONPATH=$PYTHONPATH:~/bus-tracking-app
           export PATH=$HOME/.local/bin:$PATH
           
+          # Create directories for output if they don't exist
+          mkdir -p ~/logs
+          
           # Start the application with logging
-          echo "Starting application at $(date)" >> deploy.log
-          nohup $PYTHON_BIN Controller/bus-api.py >> app.log 2>&1 &
+          echo "Starting application at $(date)" >> ~/logs/deploy.log
+          nohup $PYTHON_BIN Controller/bus-api.py >> ~/logs/app.log 2>&1 &
           APP_PID=$!
           
           # Wait a bit and check if app is running
           sleep 5
           if ps -p $APP_PID > /dev/null; then
-            echo "Application started successfully with PID $APP_PID" >> deploy.log
+            echo "Application started successfully with PID $APP_PID" >> ~/logs/deploy.log
             echo "Application started on port $PORT"
             exit 0
           else
-            echo "Application failed to start" >> deploy.log
-            echo "Last 20 lines of app.log:" >> deploy.log
-            tail -20 app.log >> deploy.log
+            echo "Application failed to start" >> ~/logs/deploy.log
+            echo "Last 20 lines of app.log:" >> ~/logs/deploy.log
+            tail -20 ~/logs/app.log >> ~/logs/deploy.log
             exit 1
           fi
           EOL
           
           chmod +x ~/bus-tracking-app/run.sh
-          
-          # Stop any running instances and output the result - don't fail if nothing to kill
+
+    - name: Deploy to server - Part 2 (Stop existing app)
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          # Stop any existing instances - wrap in true to always return success
           echo "Stopping existing instances..."
-          pkill -f "python.*bus-api.py" || echo "No instances to stop"
+          (pkill -f "python.*bus-api.py" || true)
           sleep 2
+          echo "Any existing instances have been stopped."
           
+    - name: Deploy to server - Part 3 (Start app and verify)
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
           # Start the application and capture the result
           echo "Starting application..."
           cd ~/bus-tracking-app
-          bash -x ./run.sh || {
+          ./run.sh || {
             echo "Run script failed. Checking logs:"
             echo "-------------- Last 20 lines of app.log --------------"
-            tail -20 app.log || echo "Cannot access app.log"
+            tail -20 ~/logs/app.log || echo "Cannot access app.log"
             echo "-------------- End of app.log --------------"
             echo "-------------- deploy.log --------------"
-            cat deploy.log || echo "Cannot access deploy.log"
+            cat ~/logs/deploy.log || echo "Cannot access deploy.log"
             echo "-------------- End of deploy.log --------------"
             exit 1
           }
@@ -132,7 +149,6 @@ jobs:
           echo "Verifying deployment..."
           if pgrep -f "python.*bus-api.py" > /dev/null; then
             echo "✅ Application is running!"
-            exit 0
           else
             echo "❌ Application is not running. Deployment failed."
             exit 1
