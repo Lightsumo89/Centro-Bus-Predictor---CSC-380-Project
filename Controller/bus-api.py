@@ -972,13 +972,13 @@ def updates():
 def help():
     return render_template('help.html')
 
-@app.route('/frontend/routes.html')
-def routes():
-    return render_template('routes.html', map_file="static/bus_stops_map.html")
-
 # @app.route('/frontend/routes.html')
 # def routes():
-#     return safe_render_template('routes.html')
+#     return render_template('routes.html', map_file="static/bus_stops_map.html")
+
+@app.route('/frontend/routes.html')
+def routes():
+    return safe_render_template('routes.html')
 
 @app.route('/frontend/plan-your-trip.html')
 def plan_your_trip():
