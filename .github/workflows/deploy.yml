@@ -48,9 +48,13 @@ jobs:
             rm -rf venv
           fi
           
-          # Create fresh virtual environment
-          echo "Creating new virtual environment..."
-          python3 -m venv venv
+          # Ensure virtualenv is installed
+          echo "Installing virtualenv in the user environment..."
+          pip install --user virtualenv
+          
+          # Create a new virtual environment using virtualenv
+          echo "Creating new virtual environment with virtualenv..."
+          ~/.local/bin/virtualenv venv
           
           # Verify activation script exists
           if [ ! -f "venv/bin/activate" ]; then
