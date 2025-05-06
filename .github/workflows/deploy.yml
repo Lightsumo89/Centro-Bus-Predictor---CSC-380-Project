@@ -76,14 +76,16 @@ jobs:
             exit 1
           fi
           
-          # Kill any existing instances
-          pkill -f "python.*bus-api.py" || true
+          # Kill any existing instances - don't exit if this fails
+          echo "Attempting to stop any running instances..."
+          pkill -f "python.*bus-api.py" || echo "No running instances found"
           sleep 2
           
           # Set environment variables
           export PORT=10589
           export FLASK_ENV=production
           export PYTHONPATH=$PYTHONPATH:~/bus-tracking-app
+          export PATH=$HOME/.local/bin:$PATH
           
           # Start the application with logging
           echo "Starting application at $(date)" >> deploy.log
@@ -95,6 +97,7 @@ jobs:
           if ps -p $APP_PID > /dev/null; then
             echo "Application started successfully with PID $APP_PID" >> deploy.log
             echo "Application started on port $PORT"
+            exit 0
           else
             echo "Application failed to start" >> deploy.log
             echo "Last 20 lines of app.log:" >> deploy.log
@@ -105,23 +108,31 @@ jobs:
           
           chmod +x ~/bus-tracking-app/run.sh
           
-          # Stop any running instances and start the application
+          # Stop any running instances and output the result - don't fail if nothing to kill
           echo "Stopping existing instances..."
-          pkill -f "python.*bus-api.py" || true
+          pkill -f "python.*bus-api.py" || echo "No instances to stop"
           sleep 2
           
+          # Start the application and capture the result
           echo "Starting application..."
           cd ~/bus-tracking-app
-          ./run.sh
+          bash -x ./run.sh || {
+            echo "Run script failed. Checking logs:"
+            echo "-------------- Last 20 lines of app.log --------------"
+            tail -20 app.log || echo "Cannot access app.log"
+            echo "-------------- End of app.log --------------"
+            echo "-------------- deploy.log --------------"
+            cat deploy.log || echo "Cannot access deploy.log"
+            echo "-------------- End of deploy.log --------------"
+            exit 1
+          }
           
-          # Verify deployment
-          sleep 5
-          if curl -s -o /dev/null -w "%{http_code}" http://localhost:10589/ | grep -q "200\|302"; then
-            echo "Deployment successful - application is responding"
+          # Final verification
+          echo "Verifying deployment..."
+          if pgrep -f "python.*bus-api.py" > /dev/null; then
+            echo "✅ Application is running!"
+            exit 0
           else
-            echo "Warning: Application might not be responding correctly"
-            echo "Checking process..."
-            ps aux | grep bus-api
-            echo "Last 20 lines of app.log:"
-            tail -20 app.log
+            echo "❌ Application is not running. Deployment failed."
+            exit 1
           fi
