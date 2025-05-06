@@ -950,6 +950,9 @@ def time_operation():
 def oswego_team():
     return safe_render_template('oswego_team.html')
 
+@app.route('/frontend/routes.html?filename=routes/Osw10-Osw11.pdf')
+def Osw10_Osw11():
+    return safe_render_template('routes.html?filename=routes/Osw10-Osw11.pdf')
 
 @app.route('/frontend/how_to_ride.html')
 def how_to_ride():
