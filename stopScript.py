@@ -4,7 +4,6 @@ import requests
 import json
 import mysql.connector
 import urllib.request
-from requests.adapters import HTTPAdapter
 import schedule
 
 DATABASE = {
@@ -22,17 +21,7 @@ stopurl4 = "&format=json"
 serviceurl = "https://bus-time.centro.org/bustime/api/v3/getservicebulletins?key=PUZXP7CxWkPaWnvDWdacgiS4M&rt="
 serviceurl2 = "&format=json"
 
-# global route_id
-# global stop_id
-# global stop_name
-# global route_dir
 
-# def getStops():
-    # will iterate through a db query to get stop, alter global variable (hopefully)
-
-# response = requests.get(stopurl1 + 'SY76' + stopurl2 + 'FROM' + stopurl3 + 'HUB')
-# print(response.status_code)
-# print(response.text)
 
 def insertStopsData(stop_id, stop_name, route_id, route_dir):
     db = mysql.connector.connect(**DATABASE, connection_timeout = 200)
@@ -65,64 +54,95 @@ def insertServiceData(route_id, alert_details, alert_cause):
     db.close()
 
 
-def pollStops(route_id, route_dir, input_dir, input_destination):
-    # route_dir_parse = route_dir.split(' ')
-    url = stopurl1 + route_id + stopurl2 + input_dir + stopurl3 + input_destination + stopurl4
+def pollStops():
+    db = mysql.connector.connect(**DATABASE, connection_timeout=500)
+    cursor = db.cursor()
+    getRoutes = ("""SELECT DISTINCT Route, Direction
+                    FROM Delays_n""")
+    cursor.execute(getRoutes)
+    Routes = cursor.fetchall()
+    for row in Routes:
+        route_id = row[0]
+        route_dir = row[1]
+        split = route_dir.split(" ")
+        input_dir = split[0]
+        input_destination = split[1]
+        print(input_dir)
+        print(input_destination)
+        print(route_id + " " + route_dir)
 
-    try:
-        with urllib.request.urlopen(url) as response:
-            parse = json.loads(response.read().decode('utf-8'))
-            stops = parse.get('bustime-response', {}).get('stops', [])
-            # parse = response.json()
-            #     while True:
-                    # parse = BeautifulSoup(response.text, 'json')
-                    # stops = parse.findAll('stop')
-                    # for tag in parse.find_all(True):
-                    #      print(tag.name)
-            for stop in stops:
-                stop_id = stop.get("stpid")
-                stop_name = stop.get("stpnm")
-                print(stop_id)
-                print(stop_name)
-                insertStopsData(stop_id, stop_name, route_id, route_dir)
-                print("INSERTING A STOP!!!")
-                # time.sleep(5)
-    except urllib.error.URLError as e:
-        print("error")
 
-def pollServiceBulletin(route_id):
-    url = serviceurl + route_id + serviceurl2
-    try:
-        with urllib.request.urlopen(url) as response:
-            parse = json.loads(response.read().decode('utf-8'))
-            # services = parse.get('bustime-response', {}).get('services', [])
-            alerts = parse.get('bustime-response', {}).get('sb', [])
-            if not alerts:
-                print("No service bulletins found.")
-                alertDetails = "No service bulletins found."
-                alertCause = ""
-                insertServiceData(route_id, alertDetails, alertCause)
-            for alert in alerts:
-                # alertName = alert.get('nm')
-                alertDetails = alert.get('dtl')
-                alertCause = alert.get('cse')
-                alertCauseAnnotated = "Cause: " + alertCause
-                # print(alertName)
-                print(alertDetails)
-                print(alertCauseAnnotated)
-                insertServiceData(route_id, alertDetails, alertCauseAnnotated)
-    except urllib.error.URLError as e:
-        print("error")
-    except ValueError as e:
-        print("ValueError")
+        url = stopurl1 + route_id + stopurl2 + input_dir + stopurl3 + input_destination + stopurl4
+
+        try:
+            with urllib.request.urlopen(url) as response:
+                parse = json.loads(response.read().decode('utf-8'))
+                stops = parse.get('bustime-response', {}).get('stops', [])
+                # parse = response.json()
+                #     while True:
+                        # parse = BeautifulSoup(response.text, 'json')
+                        # stops = parse.findAll('stop')
+                        # for tag in parse.find_all(True):
+                        #      print(tag.name)
+                for stop in stops:
+                    stop_id = stop.get("stpid")
+                    stop_name = stop.get("stpnm")
+                    print(stop_id)
+                    print(stop_name)
+                    insertStopsData(stop_id, stop_name, route_id, route_dir)
+                    print("INSERTING A STOP!!!")
+                    # time.sleep(5)
+        except urllib.error.URLError as e:
+            print("error")
+        cursor.close()
+        db.close()
+
+def pollServiceBulletin():
+    db = mysql.connector.connect(**DATABASE, connection_timeout = 200)
+    cursor = db.cursor()
+    getRoutes = ("""SELECT route_id FROM Route""")
+    cursor.execute(getRoutes)
+    routes = cursor.fetchall()
+    for row in routes:
+        route = row[0]
+        print("running " + route)
+        url = serviceurl + route + serviceurl2
+        try:
+            with urllib.request.urlopen(url) as response:
+                parse = json.loads(response.read().decode('utf-8'))
+                # services = parse.get('bustime-response', {}).get('services', [])
+                alerts = parse.get('bustime-response', {}).get('sb', [])
+                if not alerts:
+                    print("No service bulletins found.")
+                    alertDetails = "No service bulletins found."
+                    alertCause = ""
+                    insertServiceData(route, alertDetails, alertCause)
+                for alert in alerts:
+                    # alertName = alert.get('nm')
+                    alertDetails = alert.get('dtl')
+                    alertCause = alert.get('cse')
+                    alertCauseAnnotated = "Cause: " + alertCause
+                    # print(alertName)
+                    print(alertDetails)
+                    print(alertCauseAnnotated)
+                    insertServiceData(route, alertDetails, alertCauseAnnotated)
+        except urllib.error.URLError as e:
+            print("error")
+        except ValueError as e:
+            print("ValueError")
+
+        cursor.close()
+        db.close()
 
 
 # test schedule
-# schedule.every().monday.at("05:00").do(pollStops(route_id, route_dir, input_dir, input_destination))
-# while True:
-#     schedule.run_pending()
-#     time.sleep(1)
+schedule.every().day.at("05:00").do(pollServiceBulletin)
+schedule.every().day.at("05:00").do(pollStops)
 
-# pollStops("SY76", "TO HUB", "TO", "HUB")
+while True:
+    schedule.run_pending()
+    time.sleep(30)
 
-pollServiceBulletin("SY76")
+
+# pollServiceBulletin()
+# pollStops()
