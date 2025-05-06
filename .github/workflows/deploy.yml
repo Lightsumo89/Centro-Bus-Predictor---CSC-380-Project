@@ -26,6 +26,11 @@ jobs:
             cd ~/bus-tracking-app
             git fetch origin
             git checkout Production
+            # Reset any local changes that might conflict with pull
+            git reset --hard HEAD
+            # Clean any untracked files that might cause conflicts
+            git clean -f -d static/bus_stops_map.html || true
+            # Pull latest changes
             git pull origin Production
           else
             git clone -b Production https://github.com/Lightsumo89/Centro-Bus-Predictor---CSC-380-Project.git ~/bus-tracking-app
@@ -113,7 +118,6 @@ jobs:
           EOL
           
           chmod +x ~/bus-tracking-app/run.sh
-
     - name: Deploy to server - Part 2 (Stop existing app)
       uses: appleboy/ssh-action@master
       with:
