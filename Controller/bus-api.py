@@ -955,9 +955,9 @@ def oswego_team():
 def routes():
     return safe_render_template('routes.html')
 
-@app.route('/frontend/routes.html?filename=routes/Osw10-Osw11.pdf')
-def Osw10_Osw11():
-    return safe_render_template('routes.html?filename=routes/Osw10-Osw11.pdf')
+# @app.route('/frontend/routes.html?filename=routes/Osw10-Osw11.pdf')
+# def Osw10_Osw11():
+#     return safe_render_template('routes.html?filename=routes/Osw10-Osw11.pdf')
 
 @app.route('/frontend/how_to_ride.html')
 def how_to_ride():
