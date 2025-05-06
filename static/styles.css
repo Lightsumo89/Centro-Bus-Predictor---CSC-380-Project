@@ -191,6 +191,9 @@ header {
   animation: fadeIn 0.3s ease;
 }
 
+.dropdown-menu.show {
+  display: block;
+}
 .dropdown-item {
   width: 100%;
   border-bottom: 1px solid var(--border-color);
@@ -762,3 +765,50 @@ footer .footer-info p {
   .resources-list a:hover {
     color: #006bb3;
   }
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+header, section {
+    margin-bottom: 2rem;
+}
+
+.alert-item, .stop-item {
+    border: 1px solid #ccc;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+}
+
+button {
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+    margin-top: 0.5rem;
+}
+.alert-item {
+    background-color: #f4f4f4;
+    border-left: 4px solid #007BFF;
+    margin-bottom: 20px;
+    padding: 15px;
+    border-radius: 6px;
+}
+
+.stop-item {
+    background-color: #fff;
+    border-left: 4px solid #28a745;
+    margin-bottom: 10px;
+    padding: 10px;
+    border-radius: 6px;
+}
+.help-section {
+      position: relative;
+      z-index: 1;
+      pointer-events: auto;
+    }
+
+    .help-section a {
+      pointer-events: auto;
+    }
