@@ -92,7 +92,8 @@ jobs:
           
           # Start the application with logging
           echo "Starting application at $(date)" >> ~/logs/deploy.log
-          nohup $PYTHON_BIN Controller/bus-api.py >> ~/logs/app.log 2>&1 &
+          cd Controller  # Change to the Controller directory before running the script
+          nohup $PYTHON_BIN bus-api.py >> ~/logs/app.log 2>&1 &
           APP_PID=$!
           
           # Wait a bit and check if app is running
@@ -105,6 +106,8 @@ jobs:
             echo "Application failed to start" >> ~/logs/deploy.log
             echo "Last 20 lines of app.log:" >> ~/logs/deploy.log
             tail -20 ~/logs/app.log >> ~/logs/deploy.log
+            echo "Extended log for debugging:"
+            tail -50 ~/logs/app.log
             exit 1
           fi
           EOL
