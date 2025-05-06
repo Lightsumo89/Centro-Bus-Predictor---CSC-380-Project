@@ -10,9 +10,11 @@ from hmmlearn import hmm
 from scipy.stats import multivariate_normal
 import mysql.connector
 import jinja2
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date, time
 from error_handlers import register_error_handlers
 import traceback
+from collections import defaultdict
+
 
 DATABASE = {
     "host": "pi.cs.oswego.edu",
@@ -73,7 +75,55 @@ def select_table2(stop_id, route, direction):
             cursor.close()
             db.close()
 
+def select_table3(route, direction, stop_id, hour):
+    db = get_db_connection()
+    if not db:
+        print("Database connection failed")
+        return []
 
+    try:
+        cursor = db.cursor(dictionary=True)
+        select_query = f"SELECT * FROM Delays_n WHERE Route = %s AND Direction = %s AND StopID = %s AND TIME(ArriveTime) >= '{int(hour):02}:00:00' AND TIME(ArriveTime) < '{(int(hour) + 1):02}:00:00'"
+        cursor.execute(select_query, (route, direction, stop_id))
+        rows = cursor.fetchall()
+        return rows
+    except Exception as e:
+        print(f"Error in select_table3: {e}")
+        return []
+    finally:
+        if db.is_connected():
+            cursor.close()
+            db.close()
+
+def select_table4(route):
+    db = get_db_connection()
+    if not db:
+        print("Database connection failed")
+        return []
+
+    try:
+        cursor = db.cursor(dictionary=True)
+        select_query = f"SELECT * FROM Delays_n WHERE Route = %s ORDER BY ID, ArriveTime" # add order by id and arrive time
+        cursor.execute(select_query, (route,))
+        rows = cursor.fetchall()
+        return rows
+    except Exception as e:
+        print(f"Error in select_table4: {e}")
+        return []
+    finally:
+        if db.is_connected():
+            cursor.close()
+            db.close()
+
+
+def contains_stop(id_array, stop_id): # return arrive time if stop_id is in id_array, else return None
+    for arrival in id_array:
+        if stop_id == arrival.get("StopID"):
+            return arrival
+
+    return None
+
+"""
 def get_bus_arrival_prediction(stop_id, route, direction):
     direction = str(direction)
     stop_id = str(stop_id)
@@ -182,6 +232,215 @@ def get_bus_arrival_prediction(stop_id, route, direction):
                 predicted_times.append(predicted_time)
 
     return predicted_times
+"""
+
+
+def get_bus_arrival_prediction(stop_id, route, direction, day, month, year, input_hour):
+    input_date = date(int(year), int(month), int(day))
+    print(input_date)
+
+    if datetime.now().date() != input_date:
+        hour = input_hour
+
+    if datetime.now().date() != input_date:
+        rows_hour = select_table3(route, direction, stop_id, hour)
+        print(rows_hour)
+
+        if len(rows_hour) == 0:
+            return "no bus for given time"
+
+        else:
+            timestamps = [
+                row_hour.get("ArriveTime").hour * 3600 + row_hour.get("ArriveTime").minute * 60 + row_hour.get(
+                    "ArriveTime").second for row_hour in rows_hour]
+
+            average_time = int(sum(timestamps) / len(timestamps))
+
+            predicted_time = time(hour=average_time // 3600,
+                                  minute=(average_time % 3600) // 60,
+                                  second=average_time % 60
+                                  )
+
+            predicted_time = datetime.combine(input_date, predicted_time)
+
+            return predicted_time
+
+    else:
+        last_arrivals = select_table1(route)  # get the stops of the last arrived buses on the route
+
+        predicted_times = []
+
+        if len(last_arrivals) == 0:
+            return "no bus on route"
+
+        else:
+            rows_user_input = select_table2(stop_id, route, direction)
+
+            ctr = 0
+            total_sum = 0
+
+            for last_arrival in last_arrivals:
+                last_arrival_time = last_arrival.get("ArriveTime")
+
+                rows_last_arrival = select_table2(last_arrival.get("StopID"), last_arrival.get("Route"),
+                                                  last_arrival.get("Direction"))
+
+                for row_last_arrival in rows_last_arrival:
+                    for row_user_input in rows_user_input:  # could do a check for an id one less or more for different directions for multiple round trips
+                        if row_user_input.get("ID") == row_last_arrival.get("ID") and row_user_input.get(
+                                "ArriveTime") > row_last_arrival.get("ArriveTime"):
+                            ctr += 1
+
+                            total_sum += (row_user_input.get("ArriveTime") - row_last_arrival.get(
+                                "ArriveTime")).total_seconds()
+
+                            break
+
+                        elif row_user_input.get("ID") > row_last_arrival.get("ID"):
+                            break
+
+                if ctr == 0:
+                    consecutive_round_trips = defaultdict(list)
+
+                    consecutive_round_trips_day = []  # array of arrivals in consecutive round trips per day (keep track of the max arrival time of all of them)
+
+                    rows_route = select_table4(route)
+
+                    arrive_day = rows_route[0].get("ArriveTime").date()
+                    traversal_id = rows_route[0].get("ID")
+
+                    b = False
+
+                    for row_route in rows_route:
+                        if row_route.get("ArriveTime").date() != arrive_day:
+                            if any(row_route.get("ID") == c[-1][-1].get("ID") for c in
+                                   consecutive_round_trips_day):  # include the next day's 0:00:00 hour in the previous flag, set a flag so that the change in id clears the consecutive_round_trips_day array, loop through individually
+
+                                for c in consecutive_round_trips_day:
+                                    if row_route.get("ID") == c[-1][-1].get("ID"):  # maximum id array in c array
+                                        c[-1].append(row_route)  # last array in c adds an arrival with the same id
+
+                                        break
+
+                                b = True
+
+                            else:  # the id is different from the previous day to the first in the next day so clear the array
+                                # print("different day")
+
+                                for c in consecutive_round_trips_day:  # c is an array containing the arrivals of  consecutive round trips (could include those with just 1 round trip)
+                                    if len(c) >= 2:  # c contains each arrival, need to check if number of different ids is greater than or equal to 2
+                                        consecutive_round_trips[arrive_day].append(c)  # an array of arrays
+
+                                consecutive_round_trips_day.clear()
+
+                                consecutive_round_trips_day.append([[row_route]])
+
+                                arrive_day = row_route.get("ArriveTime").date()  # update arrive_day
+                                traversal_id = row_route.get("ID")  # update traversal_id
+
+                        elif row_route.get("ID") != traversal_id:  # check where to append it
+                            if b:  # clear the consecutive_round_trips array like in the else above and reset b to False
+                                # print("different day")
+
+                                for c in consecutive_round_trips_day:  # c is an array containing the arrivals of  consecutive round trips (could include those with just 1 round trip)
+                                    if len(c) >= 2:  # c contains each arrival, need to check if number of different ids is greater than or equal to 2
+                                        consecutive_round_trips[arrive_day].append(c)  # an array of arrays
+
+                                consecutive_round_trips_day.clear()
+
+                                consecutive_round_trips_day.append([[row_route]])
+
+                                arrive_day = row_route.get("ArriveTime").date()  # update arrive_day
+                                traversal_id = row_route.get("ID")  # update traversal_id
+
+                                b = False
+
+                            else:
+                                # print("different id") # add debug statements like this
+
+                                non_intersecting_round_trips = []
+
+                                for c in consecutive_round_trips_day:  # look for non intersecting round trips and take the minimum of the differences from the max and min
+                                    max_round_trip = c[-1][-1]  # maximum of each last array in c array
+
+                                    if row_route.get("ArriveTime") > max_round_trip.get("ArriveTime"):
+                                        non_intersecting_round_trips.append(max_round_trip)
+
+                                # find the minimum and put it in the correct c array in consecutive_round_trips_day, check if within 20 minutes
+
+                                if len(non_intersecting_round_trips) == 0:
+                                    consecutive_round_trips_day.append(
+                                        [[row_route]])  # append to new consecutive round trip array of id arrays
+
+                                else:
+                                    max_max_round_trip = max(non_intersecting_round_trips,
+                                                             key=lambda x: x.get("ArriveTime"))  # this needs max
+
+                                    if (row_route.get("ArriveTime") - max_max_round_trip.get(
+                                            "ArriveTime")).total_seconds() <= 1200:  # remove 1200 conditional
+                                        # append to correct c array, get id of the min and look for that id in the c arrays
+                                        max_max_round_trip_id = max_max_round_trip.get("ID")
+
+                                        for c in consecutive_round_trips_day:
+                                            if max_max_round_trip_id == c[-1][-1].get("ID"):
+                                                c.append(
+                                                    [row_route])  # create a new id array in c for the next id for a consecutive round trip
+
+                                                break
+
+                                    else:
+                                        # append to a new array, a separate consecutive round trip
+                                        consecutive_round_trips_day.append([[row_route]])
+
+                                    # update traversal_id
+                                    traversal_id = row_route.get("ID")
+
+                        else:  # same ID, just append it to the most recent appended from the else if
+                            if len(consecutive_round_trips_day) == 0:  # first route of the day
+                                consecutive_round_trips_day.append([[row_route]])
+
+                            else:
+                                for c in consecutive_round_trips_day:
+                                    if row_route.get("ID") == c[-1][-1].get("ID"):  # maximum id array in c array
+                                        c[-1].append(row_route)  # last array in c adds an arrival with the same id
+
+                                        break
+
+                    for day, cr_list in consecutive_round_trips.items():
+                        for cr in cr_list:  # cr is each consecutive round trip, containing arrays of the arrivals, where all with the same id go in an array
+                            for i in range(len(cr_list) - 1):
+                                arrive_time_i1 = contains_stop(cr[i], last_arrival.get(
+                                    "StopID"))  # cr[i] is each id array in cr
+
+                                if arrive_time_i1 is not None:  # stop_id inputted from user
+                                    arrive_time_i2 = contains_stop(cr[i + 1], stop_id)
+
+                                    if arrive_time_i2 is not None:
+                                        ctr += 1
+
+                                        total_sum += (arrive_time_i2.get("ArriveTime") - arrive_time_i1.get(
+                                            "ArriveTime")).total_seconds()
+
+                                    else:
+                                        continue
+
+                                else:
+                                    continue
+
+                if (ctr == 0):
+                    return "no bus for given time"
+
+                else:
+                    predicted_time = last_arrival_time + timedelta(seconds=(total_sum / ctr))
+
+                    predicted_times.append(predicted_time)
+
+            if len(predicted_times) == 0:
+                return "no bus on route"
+            else:
+                # Convert the datetime object to a consistent string format before returning
+                predicted_datetime = min(predicted_times)
+                return predicted_datetime.strftime("%Y-%m-%d %H:%M:%S")
 
 
 def get_stop_A(stop, route, direction):
@@ -473,10 +732,31 @@ def get_project_root():
     return os.path.dirname(controller_dir)
 
 
-# Then update the relevant part of your generate_map function
 @app.route('/frontend/generate_map', methods=['POST'])
 def generate_map():
     data = request.get_json()
+
+    selected_datetime_str = str(data.get('selected_datetime') or data.get('selected_hour'))
+    year = selected_datetime_str.split('-')[0] if '-' in selected_datetime_str else None
+    month = selected_datetime_str.split('-')[1] if '-' in selected_datetime_str else None
+    whole = selected_datetime_str.split('-')[2] if '-' in selected_datetime_str else None
+    day = whole.split(' ')[0] if ' ' in whole else whole
+    time_hour = selected_datetime_str.split(' ')[1]
+    hour = time_hour.split(':')[0] if ':' in time_hour else time_hour
+    selected_datetime_obj = None
+    print(f"[DEBUG] Received selected_datetime: {selected_datetime_str}")
+
+    if selected_datetime_str:
+        try:
+            # Handle both full datetime and just hour (e.g., "2025-05-06 14:00" or "14:00")
+            if len(selected_datetime_str) <= 5:  # Likely just hour, add today's date
+                today_str = datetime.today().strftime('%Y-%m-%d')
+                selected_datetime_obj = datetime.strptime(f"{today_str} {selected_datetime_str}", "%Y-%m-%d %H:%M")
+            else:
+                selected_datetime_obj = datetime.strptime(selected_datetime_str, "%Y-%m-%d %H:%M")
+            print(f"[DEBUG] Parsed datetime: {selected_datetime_obj}")
+        except Exception as e:
+            print(f"[ERROR] Failed to parse selected_datetime: {selected_datetime_str}, Error: {str(e)}")
 
     route = data.get('route')
     direction = data.get('direction')
@@ -487,133 +767,98 @@ def generate_map():
     print(
         f"[DEBUG] Parsed request: route = '{route}', direction = '{direction}', direction_text = '{direction_text}', stop = '{stop}', stop_id = '{stop_id}'")
 
-    # Get prediction for the selected stop
+    # If stop_id is None, try to find it using route, direction, and stop name
+    if stop_id is None and stop is not None:
+        try:
+            print(f"[DEBUG] Looking up stop_id for stop name '{stop}'")
+            df = pd.read_csv('../static/matched_stops.csv')
+            df.columns = df.columns.str.strip()
+
+            # Convert direction to integer for filtering
+            # Convert direction to integer for filtering
+            dir_filter = [0, 1]  # Default to all selectors if direction is invalid
+            if direction == '0':
+                dir_filter = [0]  # Direction 1 selectors
+            elif direction == '1':
+                dir_filter = [1]  # Direction 2 selectors
+
+            # Filter dataframe by route, direction, and stop name
+            print(f"[DEBUG] Filtering dataframe for route = '{route}', direction = {dir_filter}, stop = '{stop}'")
+            filtered = df[(df['Route'] == route) &
+                          (df['Selector'].isin(dir_filter)) &
+                          (df['stop_name'] == stop)]
+
+            print(f"[DEBUG] Found {len(filtered)} matching rows")
+            if not filtered.empty:
+                stop_id = filtered.iloc[0]['stop_id']
+                print(f"[DEBUG] Found stop_id: {stop_id} for stop {stop}")
+            else:
+                print(f"[DEBUG] No matching stop found")
+        except Exception as e:
+            print(f"[ERROR] Error finding stop_id: {str(e)}")
+            print(traceback.format_exc())
+
+    # Decide which direction value to use for prediction
     prediction_direction = direction_text if direction_text else direction
     print(f"[DEBUG] Using direction value for prediction: '{prediction_direction}'")
 
-    try:
-        prediction = get_bus_arrival_prediction(stop_id, route, prediction_direction)
-        print(f"[DEBUG] Prediction result: {prediction}")
-    except Exception as e:
-        print(f"[ERROR] Prediction error: {str(e)}")
-        prediction = []
+    # Get prediction for the selected stop
+    print(
+        f"[DEBUG] Calling get_bus_arrival_prediction with stop_id = '{stop_id}', route = '{route}', direction = '{prediction_direction}'")
+    prediction = get_bus_arrival_prediction(stop_id, route, prediction_direction, day, month, year, hour)
+    print(f"[DEBUG] Prediction result: {prediction}")
+    string_prediction = str(prediction).split(' ')[1] if ' ' in str(prediction) else str(prediction)
 
-    # Get the absolute path to matched_stops.csv
-    project_root = get_project_root()
-    csv_path = os.path.join(project_root, 'static', 'matched_stops.csv')
+    # Read and clean CSV
+    df = pd.read_csv('../static/matched_stops.csv')
+    df.columns = df.columns.str.strip()
+    df = df[df['Selector'].notnull()].copy()  # Create explicit copy
+    df['Selector'] = pd.to_numeric(df['Selector'], errors='coerce').fillna(-1).astype(int)
 
-    print(f"[DEBUG] Reading CSV from: {csv_path}")
-    print(f"[DEBUG] CSV file exists: {os.path.exists(csv_path)}")
+    # Apply direction-based filtering
+    if direction == '0':
+        df = df[df['Selector'].isin([0])]
+    elif direction == '1':
+        df = df[df['Selector'].isin([1])]
 
-    try:
-        # Read CSV file
-        df = pd.read_csv(csv_path)
-        print(f"[DEBUG] CSV loaded successfully with {len(df)} rows")
-        print(f"[DEBUG] CSV columns: {df.columns.tolist()}")
+    df = df[df['Route'] == route]
 
-        # Clean column names
-        df.columns = df.columns.str.strip()
+    # Create folium map
+    map_center = [43.455, -76.532]
+    bus_map = folium.Map(location=map_center, zoom_start=13)
 
-        # Filter by route
-        route_df = df[df['Route'] == route].copy()
-        print(f"[DEBUG] After route filter: {len(route_df)} rows")
+    for _, row in df.iterrows():
+        lat = row['stop_lat']
+        lon = row['stop_lon']
+        stop_name = row['stop_id']
+        popup_text = f"{row['stop_name']}<br>ID: {stop_name}<br>Lat: {lat}, Lon: {lon}"
 
-        if len(route_df) == 0:
-            print(f"[WARNING] No stops found for route {route}")
-
-        # Handle Selector column for direction filtering
-        if 'Selector' in route_df.columns:
-            route_df['Selector'] = pd.to_numeric(route_df['Selector'], errors='coerce').fillna(0).astype(int)
-
-            if direction == '0':
-                route_df = route_df[route_df['Selector'] == 0]
-            elif direction == '1':
-                route_df = route_df[route_df['Selector'] == 1]
-
-            print(f"[DEBUG] After direction filter: {len(route_df)} rows")
-
-        # Create map
-        map_center = [43.455, -76.532]  # Default center
-
-        # If we have stops, use their average position
-        if len(route_df) > 0:
-            avg_lat = route_df['stop_lat'].mean()
-            avg_lon = route_df['stop_lon'].mean()
-            if not (pd.isna(avg_lat) or pd.isna(avg_lon)):
-                map_center = [avg_lat, avg_lon]
-
-        bus_map = folium.Map(location=map_center, zoom_start=13)
-
-        # Check if required columns exist
-        required_columns = ['stop_lat', 'stop_lon', 'stop_name', 'stop_id']
-        missing_columns = [col for col in required_columns if col not in route_df.columns]
-        if missing_columns:
-            print(f"[ERROR] CSV missing required columns: {missing_columns}")
-            # Print sample rows to debug
-            print(f"[DEBUG] Sample data: {route_df.head(1).to_dict() if len(route_df) > 0 else 'No data'}")
+        if stop == row['stop_name']:
+            folium.Marker(
+                location=[lat, lon],
+                popup=popup_text,
+                tooltip=row['stop_name'],
+                icon=folium.Icon(color='red')
+            ).add_to(bus_map)
         else:
-            # Add markers for each stop
-            marker_count = 0
-            for _, row in route_df.iterrows():
-                try:
-                    lat = float(row['stop_lat'])
-                    lon = float(row['stop_lon'])
+            folium.Marker(
+                location=[lat, lon],
+                popup=popup_text,
+                tooltip=row['stop_name'],
+            ).add_to(bus_map)
 
-                    # Skip invalid coordinates
-                    if pd.isna(lat) or pd.isna(lon):
-                        continue
+    # Save map
+    static_folder = 'static'
+    if not os.path.exists(static_folder):
+        os.makedirs(static_folder)
+    map_path = os.path.join(static_folder, "bus_stops_map.html")
+    bus_map.save(map_path)
 
-                    stop_name = str(row['stop_name'])
-                    stop_id_val = str(row['stop_id'])
+    return jsonify({
+        "map_file": "static/bus_stops_map.html",
+        "prediction": string_prediction
+    })
 
-                    popup_text = f"{stop_name}<br>ID: {stop_id_val}<br>Lat: {lat}, Lon: {lon}"
-
-                    # Use red icon for the selected stop
-                    if stop and stop == stop_name:
-                        folium.Marker(
-                            location=[lat, lon],
-                            popup=popup_text,
-                            tooltip=stop_name,
-                            icon=folium.Icon(color='red')
-                        ).add_to(bus_map)
-                    else:
-                        folium.Marker(
-                            location=[lat, lon],
-                            popup=popup_text,
-                            tooltip=stop_name
-                        ).add_to(bus_map)
-
-                    marker_count += 1
-                except Exception as marker_err:
-                    print(f"[ERROR] Failed to add marker for {row.get('stop_name', 'unknown')}: {str(marker_err)}")
-                    continue
-
-            print(f"[DEBUG] Added {marker_count} markers to map")
-
-        # Save map
-        map_path = os.path.join(project_root, 'static', 'bus_stops_map.html')
-        bus_map.save(map_path)
-
-        return jsonify({
-            "map_file": "static/bus_stops_map.html",
-            "prediction": prediction,
-            "markers_count": marker_count if 'marker_count' in locals() else 0
-        })
-
-    except Exception as e:
-        print(f"[ERROR] Map generation error: {str(e)}")
-        print(traceback.format_exc())
-
-        # Return a basic map with no markers
-        bus_map = folium.Map(location=[43.455, -76.532], zoom_start=13)
-        map_path = os.path.join(project_root, 'static', 'bus_stops_map.html')
-        bus_map.save(map_path)
-
-        return jsonify({
-            "map_file": "static/bus_stops_map.html",
-            "prediction": prediction,
-            "error": str(e)
-        })
 
 # Test endpoint for direct prediction testing
 @app.route('/test-prediction/<stop_id>/<route>/<direction>')
