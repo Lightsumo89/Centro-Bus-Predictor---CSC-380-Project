@@ -43,41 +43,37 @@ jobs:
           
           echo "Using Python: $($PYTHON_CMD --version)"
           
-          # Remove old venv if it exists (to ensure clean state)
+          # Go to the project directory
           cd ~/bus-tracking-app
-          if [ -d "venv" ]; then
-            echo "Removing old virtual environment..."
-            rm -rf venv
-          fi
           
-          # Create a new virtual environment using Python's built-in venv module
-          echo "Creating new virtual environment with venv..."
-          $PYTHON_CMD -m venv venv
+          # Create directories for Python user packages if they don't exist
+          mkdir -p ~/.local/bin
+          mkdir -p ~/.local/lib/python3.10/site-packages
           
-          # Verify activation script exists
-          if [ ! -f "venv/bin/activate" ]; then
-            echo "Error: venv activation script not found after creation"
-            exit 1
-          fi
+          # Add user bin directory to PATH (for this session)
+          export PATH=$HOME/.local/bin:$PATH
           
-          # Install dependencies in virtual environment
-          echo "Installing dependencies..."
-          source venv/bin/activate
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          # Skip virtual environment - install directly to user space
+          echo "Installing dependencies directly to user space..."
+          $PYTHON_CMD -m pip install --user --upgrade pip
+          $PYTHON_CMD -m pip install --user -r requirements.txt
+          
+          # Create a bin directory for any scripts
+          mkdir -p ~/bin
           
           # Create a run script with better error handling
           cat > ~/bus-tracking-app/run.sh << 'EOL'
           #!/bin/bash
           cd ~/bus-tracking-app
           
-          # Check if activation script exists
-          if [ -f "venv/bin/activate" ]; then
-            source venv/bin/activate
+          # Find the Python 3 executable
+          if command -v python3 &>/dev/null; then
+            PYTHON_BIN="python3"
+          elif command -v python &>/dev/null && python --version 2>&1 | grep -q "Python 3"; then
             PYTHON_BIN="python"
           else
-            # Use venv python directly if activation fails
-            PYTHON_BIN="venv/bin/python"
+            echo "Error: Python 3 not found"
+            exit 1
           fi
           
           # Kill any existing instances
