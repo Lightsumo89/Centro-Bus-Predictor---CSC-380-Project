@@ -118,6 +118,7 @@ jobs:
           EOL
           
           chmod +x ~/bus-tracking-app/run.sh
+
     - name: Deploy to server - Part 2 (Stop existing app)
       uses: appleboy/ssh-action@master
       with:
@@ -125,11 +126,25 @@ jobs:
         username: ${{ secrets.USERNAME }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
-          # Stop any existing instances - wrap in true to always return success
+          # Use a script that ensures exit code 0 regardless of pkill result
           echo "Stopping existing instances..."
-          (pkill -f "python.*bus-api.py" || true)
-          sleep 2
-          echo "Any existing instances have been stopped."
+          {
+            # Try to kill any running instances
+            pkill -f "python.*bus-api.py"
+            # Sleep to give processes time to terminate
+            sleep 3
+            # Verify no instances are running (for information only)
+            if pgrep -f "python.*bus-api.py" > /dev/null; then
+              echo "Warning: Some instances may still be running"
+            else
+              echo "All instances have been stopped or none were running"
+            fi
+          } || {
+            # This will execute only if the above block fails completely
+            echo "Process stopping may have had issues, continuing anyway"
+          }
+          # Always exit with success
+          exit 0
           
     - name: Deploy to server - Part 3 (Start app and verify)
       uses: appleboy/ssh-action@master
