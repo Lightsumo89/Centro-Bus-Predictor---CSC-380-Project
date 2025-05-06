@@ -1,0 +1,104 @@
+  <link rel="stylesheet" href="static/styles.css">
+
+</head>
+<body>
+  <header>
+    <div class="header-container">
+      <div class="nav-extra">
+        <div class="menu-container" id="menuContainer">
+          <button class="menu-btn" id="menuBtn">MENU</button>
+          <ul class="dropdown-menu">
+
+            <li class="dropdown-item">
+              <a href="faq.html">FAQs</a>
+            </li>
+            <li class="dropdown-item">
+              <a href="help.html">HELP</a>
+            </li>
+            <li class="dropdown-item">
+              <a href="team-d.html">OSWEGO TEAM</a></li>
+              </li>
+          </ul>
+
+        </div>
+      </div>
+      <div class="logo-container">
+        <a href="index.html">
+          <img src="logo.jpg" alt="Centro Logo">
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- section for header and routes menus-->
+<main>
+  <h1>Centro Routes & Schedules</h1>
+  
+  <div class="tab-container"> 
+    <button class="tab-btn active" data-tab="oswego">Oswego</button>
+    <button class="tab-btn" data-tab="syracuse">Syracuse</button>
+  </div>
+
+  <div class="tab-content active" id="oswego">
+    <details>
+      <summary>OSW10 - Route Name</summary>
+      <p><a href="routes/Osw10-Osw11.pdf" target="_blank">Open Schedule (PDF)</a></p>
+    </details>
+    <details>
+      <summary>OSW11 - Route Name</summary>
+      <p><a href="routes/Osw10-Osw11.pdf" target="_blank">Open Schedule (PDF)</a></p>
+    </details>
+    <details>
+      <summary>OSW1A - Route Name</summary>
+      <p><a href="routes/OSW-City.pdf" target="_blank">Open Schedule (PDF)</a></p>
+    </details>
+    <details>
+      <summary>OSW46 - Route Name</summary>
+      <p><a href="routes/Osw46.pdf" target="_blank">Open Schedule (PDF)</a></p>
+    </details>
+  </div>
+
+  <div class="tab-content" id="syracuse">
+    <details>
+      <summary>SY48 - Route Name</summary>
+      <p><a href="routes/sy-48.pdf" target="_blank">Open Schedule (PDF)</a></p>
+    </details>
+    <details>
+      <summary>SY74 - Route Name</summary>
+      <p><a href="routes/Sy-74.pdf" target="_blank">Open Schedule (PDF)</a></p>
+    </details>
+    <details>
+      <summary>SY76 - Route Name</summary>
+      <p><a href="routes/sy-76.pdf" target="_blank">Open Schedule (PDF)</a></p>
+    </details>
+    <details>
+      <summary>SY80 - Route Name</summary>
+      <p><a href="routes/Sy-80.pdf" target="_blank">Open Schedule (PDF)</a></p>
+    </details>
+  </div>
+
+  <script>
+    const tabButtons = document.querySelectorAll(".tab-btn");
+    const tabContents = document.querySelectorAll(".tab-content");
+
+    tabButtons.forEach(button => {
+      button.addEventListener("click", () => {
+        tabButtons.forEach(btn => btn.classList.remove("active"));
+        tabContents.forEach(tab => tab.classList.remove("active"));
+
+        button.classList.add("active");
+        document.getElementById(button.dataset.tab).classList.add("active");
+      });
+    });
+  </script>
+  <footer>
+    <div class="footer-container">
+      <div class="footer-info">
+        <p>&copy; Oswego Team D. All rights reserved. Contact - Monday - Friday: 8:00 AM - 5:00 PM Phone: (315) 442-3333  </p>
+      </div>
+    </div>
+  </footer>
+  <script src="script.js"></script>
+</main>
+</body>
+</html>
