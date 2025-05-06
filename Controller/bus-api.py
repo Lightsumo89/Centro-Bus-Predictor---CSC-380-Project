@@ -194,8 +194,8 @@ def routes():
 @app.route('/get_stops/<route>', methods=['GET'])
 def get_stops_for_route(route):
     direction = request.args.get('direction')  # Accept direction as a query param
-    df = pd.read_csv('matched_stops.csv')
-    print(f"[DEBUG] Direction from query: {direction}")
+    df = pd.read_csv('static/matched_stops.csv')
+    print(f"[DEBUG] Direction: {direction}")
     df.columns = df.columns.str.strip()
 
     # First filter by route
@@ -205,23 +205,10 @@ def get_stops_for_route(route):
     filtered_df['Selector'] = pd.to_numeric(filtered_df['Selector'], errors='coerce').fillna(-1).astype(int)
 
     # Filter by direction parameter
-    if direction:
-        print(f"[DEBUG] Filtering by direction: {direction}")
-        if direction == 'FROM HUB' or direction == 'FROM DOWNTOWN':
-            filtered_df = filtered_df[filtered_df['Selector'] == 0]
-        elif direction == 'TO HUB' or direction == 'TO DOWNTOWN':
-            filtered_df = filtered_df[filtered_df['Selector'] == 1]
-        else:
-            # Try to parse the direction as a number
-            try:
-                dir_num = int(direction)
-                filtered_df = filtered_df[filtered_df['Selector'] == dir_num]
-            except ValueError:
-                # If not a number, try to match with Direction1 or Direction2
-                filtered_df = filtered_df[
-                    (filtered_df['Direction1'] == direction) | 
-                    (filtered_df['Direction2'] == direction)
-                ]
+    if direction == 'FROM HUB' or direction == 'FROM DOWNTOWN':
+        filtered_df = filtered_df[filtered_df['Selector'] == 0]
+    elif direction == 'TO HUB' or direction == 'TO DOWNTOWN':
+        filtered_df = filtered_df[filtered_df['Selector'] == 1]
     
     # Set DirectionName based on Selector value
     filtered_df['DirectionName'] = filtered_df.apply(
@@ -230,17 +217,14 @@ def get_stops_for_route(route):
     )
 
     # Select only the needed columns and remove duplicates
-    stops = filtered_df[['stop_name', 'stop_id', 'DirectionName', 'Selector']].drop_duplicates()
-    stops_list = stops.to_dict(orient='records')
-    
-    print(f"[DEBUG] Returning {len(stops_list)} stops for route {route} with direction {direction}")
-    return jsonify(stops_list)
+    stops = filtered_df[['stop_name', 'stop_id', 'DirectionName']].drop_duplicates()
+    return jsonify(stops.to_dict(orient='records'))
 
 
 
 @app.route('/get_directions/<route_name>', methods=['GET'])
 def get_directions(route_name):
-    df = pd.read_csv('matched_stops.csv')
+    df = pd.read_csv('static/matched_stops.csv')
     df.columns = df.columns.str.strip()
     route_df = df[df['Route'] == route_name]
 
@@ -274,7 +258,7 @@ def generate_map():
     if stop_id is None and stop is not None:
         try:
             print(f"[DEBUG] Looking up stop_id for stop name '{stop}'")
-            df = pd.read_csv('matched_stops.csv')
+            df = pd.read_csv('static/matched_stops.csv')
             df.columns = df.columns.str.strip()
             
             # Convert direction to integer for filtering
@@ -311,7 +295,7 @@ def generate_map():
     print(f"[DEBUG] Prediction result: {prediction}")
 
     # Read and clean CSV
-    df = pd.read_csv('matched_stops.csv')
+    df = pd.read_csv('static/matched_stops.csv')
     df.columns = df.columns.str.strip()
     df = df[df['Selector'].notnull()].copy()  # Create explicit copy
     df['Selector'] = pd.to_numeric(df['Selector'], errors='coerce').fillna(-1).astype(int)

@@ -6,6 +6,9 @@
   <title>Centro Bus Stops Map</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
   <script src="{{ url_for('static', filename='script.js') }}"></script>
+  <!-- Add Flatpickr for better date/time picker -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
 
   <style>
     body {
@@ -100,6 +103,43 @@
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
 
+    /* Calendar icon and date picker styles */
+    .date-time-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 15px;
+    }
+
+    .calendar-icon {
+        cursor: pointer;
+        background-color: #003366;
+        color: white;
+        border-radius: 6px;
+        padding: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .calendar-icon svg {
+        width: 24px;
+        height: 24px;
+    }
+
+    #datetime-display {
+        font-size: 16px;
+        padding: 12px 14px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        background-color: #f2f2f2;
+        flex: 1;
+    }
+
+    #datetime-picker {
+        display: none;
+    }
+
     @media (max-width: 768px) {
         .dropdown-container {
             flex-direction: column;
@@ -111,6 +151,11 @@
 
         iframe {
             height: 400px;
+        }
+
+        .date-time-container {
+            flex-direction: column;
+            align-items: stretch;
         }
     }
   </style>
@@ -173,6 +218,20 @@
           <option value="">Select Stop</option>
         </select>
 
+        <!-- Date and Time Picker UI -->
+        <div class="date-time-container">
+          <div class="calendar-icon" id="show-calendar">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+          </div>
+          <div id="datetime-display">Select date and time</div>
+          <input type="hidden" id="datetime-picker" name="selected_datetime">
+        </div>
+
         {% if prediction %}
         <div style="margin-top: 10px; font-weight: bold; font-size: 18px;">
             {{ prediction }}
@@ -195,11 +254,52 @@
 
   <script src="/static/script.js"></script>
   <script>
+    
     document.addEventListener('DOMContentLoaded', () => {
       const routeSelect = document.getElementById('route-select');
       const directionSelect = document.getElementById('direction-type-select');
       const stopSelect = document.getElementById('stop-select');
       const mapFrame = document.getElementById('map');
+      const showCalendarBtn = document.getElementById('show-calendar');
+      const datetimePicker = document.getElementById('datetime-picker');
+      const datetimeDisplay = document.getElementById('datetime-display');
+      
+      // Initialize date picker with Flatpickr
+      const flatpickrInstance = flatpickr(datetimePicker, {
+        enableTime: true,
+        dateFormat: "Y-m-d H:i",
+        defaultDate: new Date(),
+        minuteIncrement: 15,
+        onChange: function(selectedDates, dateStr) {
+          datetimeDisplay.textContent = formatDateTime(selectedDates[0]);
+          
+          // If all selections are made, update the map with new date
+          if (routeSelect.value && directionSelect.value && stopSelect.value) {
+            updateMap();
+          }
+        }
+      });
+      
+      // Format date for display
+      function formatDateTime(date) {
+        const options = { 
+          weekday: 'short',
+          month: 'short', 
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        };
+        return date.toLocaleString('en-US', options);
+      }
+      
+      // Show calendar when icon is clicked
+      showCalendarBtn.addEventListener('click', function() {
+        flatpickrInstance.open();
+      });
+      
+      // Set initial date
+      flatpickrInstance.setDate(new Date());
+      datetimeDisplay.textContent = formatDateTime(new Date());
       
       // Store all stops for the current route
       let allStopsForRoute = [];
@@ -217,11 +317,13 @@
         
         // Reset map if no route selected
         if (!selectedRoute) {
-          mapFrame.src = '';
+          mapFrame.src = '{{ url_for("static", filename="bus_stops_map.html") }}';
           const predictionBox = document.getElementById('prediction-box');
           if (predictionBox) predictionBox.innerText = '';
           return;
         }
+
+        
         
         // Load directions for selected route
         fetch(`/get_directions/${encodeURIComponent(selectedRoute)}`)
@@ -245,6 +347,8 @@
           })
           .catch(err => console.error("Error fetching stops:", err));
       });
+
+      
       
       // Direction change event
       directionSelect.addEventListener('change', function() {
@@ -307,12 +411,14 @@
       const directionSelect = document.getElementById('direction-type-select');
       const stopSelect = document.getElementById('stop-select');
       const mapFrame = document.getElementById('map');
+      const datetimePicker = document.getElementById('datetime-picker');
       
       const route = routeSelect.value;
       const direction = directionSelect.value;
       const directionText = directionSelect.selectedOptions[0]?.text || '';
       const stop = stopSelect.value;
       const stopId = stopSelect.selectedOptions[0]?.dataset.id;
+      const selectedDatetime = datetimePicker.value;
 
       if (!route || !direction || !stop) return;
 
@@ -327,7 +433,8 @@
           direction, 
           directionText,
           stop, 
-          stopId 
+          stopId,
+          selected_datetime: selectedDatetime
         })
       })
       .then(response => response.json())

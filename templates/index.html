@@ -11,14 +11,7 @@
     <div class="header-container">
       <div class="nav-extra">
         <div class="menu-container" id="menuContainer">
-          <button class="menu-btn" id="menuBtn">MENU</button>
-          <ul class="dropdown-menu">
-            <li class="dropdown-item">
-              <button class="submenu-btn">ABOUT ▾</button>
-              <ul class="nested-menu">
-                <li><a href="{{ url_for('home') }}#contact">Contact Us</a></li>
-              </ul>
-            </li>
+          <button class="menu-btn" id="menuBtn">MENU</button>      
             <li class="dropdown-item">
               <a href="{{ url_for('home') }}#faqs">FAQs</a>
             </li>
@@ -62,12 +55,7 @@
         <p>Find your bus route and check schedules instantly.</p>
         <a href="{{ url_for('routes') }}">Learn More</a>
       </div>
-      <div class="link-card">
-        <h2>News &amp; Events</h2>
-        <p>Stay updated with our latest news and upcoming events.</p>
-        <a href="{{ url_for('news') }}">Learn More</a>
-      </div>
-    </section>
+  
 
     <section class="info-announcement">
       <h2>Service Alerts</h2>

@@ -87,5 +87,61 @@ document.addEventListener('DOMContentLoaded', function() {
               parentItem.querySelector('button').classList.add('active');
           }
       }
+    }
+  });
+
+
+  console.log('FAQ script loaded');
+
+  
+const faqItems = document.querySelectorAll('.faq-item');
+const faqQuestions = document.querySelectorAll('.faq-item h2');
+
+console.log('Found FAQ items:', faqItems.length);
+console.log('Found FAQ questions:', faqQuestions.length);
+
+faqQuestions.forEach(function (question) {
+  question.addEventListener('click', function () {
+    console.log('FAQ question clicked');
+    const faqItem = this.parentElement;
+    
+  
+    if (faqItem.classList.contains('active')) {
+      faqItem.classList.remove('active');
+    } else {
+
+      faqItems.forEach(function (item) {
+        item.classList.remove('active');
+      });
+ 
+      faqItem.classList.add('active');
+    }
+  
+    faqItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+  
+  question.addEventListener('mouseenter', function() {
+    const faqItem = this.parentElement;
+    faqItem.classList.add('active');
+  });
+  
+  question.addEventListener('mouseleave', function() {
+    const faqItem = this.parentElement;
+    faqItem.classList.remove('active');
+  });
+});
+
+=
+faqQuestions.forEach(function (question, index) {
+  question.setAttribute('tabindex', '0'); 
+  question.addEventListener('keydown', function (event) {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      faqQuestions[index].click(); 
+    } else if (event.key === 'ArrowDown' && index < faqQuestions.length - 1) {
+      faqQuestions[index + 1].focus();
+    } else if (event.key === 'ArrowUp' && index > 0) {
+      faqQuestions[index - 1].focus();
+    }
   });
 });
