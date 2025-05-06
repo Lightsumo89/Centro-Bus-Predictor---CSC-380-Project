@@ -11,16 +11,6 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.9'
-
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-
     - name: Deploy to server
       uses: appleboy/ssh-action@master
       with:
@@ -41,6 +31,18 @@ jobs:
             git clone -b Production https://github.com/Lightsumo89/Centro-Bus-Predictor---CSC-380-Project.git ~/bus-tracking-app
           fi
           
+          # Find available Python 3 executable
+          if command -v python3 &>/dev/null; then
+            PYTHON_CMD="python3"
+          elif command -v python &>/dev/null && python --version 2>&1 | grep -q "Python 3"; then
+            PYTHON_CMD="python"
+          else
+            echo "Error: Python 3 not found. Please ensure Python 3 is installed."
+            exit 1
+          fi
+          
+          echo "Using Python: $($PYTHON_CMD --version)"
+          
           # Remove old venv if it exists (to ensure clean state)
           cd ~/bus-tracking-app
           if [ -d "venv" ]; then
@@ -48,13 +50,9 @@ jobs:
             rm -rf venv
           fi
           
-          # Ensure virtualenv is installed
-          echo "Installing virtualenv in the user environment..."
-          pip install --user virtualenv
-          
-          # Create a new virtual environment using virtualenv
-          echo "Creating new virtual environment with virtualenv..."
-          ~/.local/bin/virtualenv venv
+          # Create a new virtual environment using Python's built-in venv module
+          echo "Creating new virtual environment with venv..."
+          $PYTHON_CMD -m venv venv
           
           # Verify activation script exists
           if [ ! -f "venv/bin/activate" ]; then
