@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Centro Bus Stops Map</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <!-- Add Flatpickr for better date/time picker -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
+
+  <style>
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: #f7f9fc;
+        color: #333;
+        margin: 0;
+        padding: 0;
+    }
+
+    form {
+    max-width: 600px; /* Shrink width */
+    margin: 20px auto 10px auto; /* Less margin under form */
+    background: #ffffff;
+    padding: 20px 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    iframe {
+        width: 95%;
+        height: 700px; /* Make it taller */
+        border: none;
+        border-radius: 10px;
+        margin: 20px auto 40px auto; /* Center and space it nicely */
+        display: block;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+
+    h1 {
+    text-align: center;
+    color: #003366;
+    padding: 10px 0;       /* Less vertical padding */
+    margin-top: 40px;      /* Less space from the top */
+    margin-bottom: 10px;   /* Add margin below if needed */
+    font-size: 24px;       /* Slightly smaller title */
+    line-height: 1.2;
+    }
+
+
+    form {
+        max-width: 900px;
+        margin: 20px auto;
+        background: #ffffff;
+        padding: 25px 30px;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .dropdown-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        justify-content: space-between;
+    }
+
+    .dropdown-container select {
+        flex: 1;
+        padding: 12px 14px;
+        font-size: 16px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        background-color: #f2f2f2;
+        transition: all 0.3s ease;
+    }
+
+    .dropdown-container select:focus {
+        border-color: #003366;
+        background-color: #fff;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(0, 51, 102, 0.2);
+    }
+
+    #prediction-box {
+        margin-top: 20px;
+        font-size: 18px;
+        font-weight: bold;
+        color: #003366;
+        padding: 10px;
+        border-left: 4px solid #003366;
+        background-color: #e6f0ff;
+        border-radius: 6px;
+    }
+
+    iframe {
+        width: 100%;
+        height: 600px;
+        border: none;
+        border-radius: 10px;
+        margin-top: 30px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Calendar icon and date picker styles */
+    .date-time-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 15px;
+    }
+
+    .calendar-icon {
+        cursor: pointer;
+        background-color: #003366;
+        color: white;
+        border-radius: 6px;
+        padding: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .calendar-icon svg {
+        width: 24px;
+        height: 24px;
+    }
+
+    #datetime-display {
+        font-size: 16px;
+        padding: 12px 14px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        background-color: #f2f2f2;
+        flex: 1;
+    }
+
+    #datetime-picker {
+        display: none;
+    }
+
+    @media (max-width: 768px) {
+        .dropdown-container {
+            flex-direction: column;
+        }
+
+        .dropdown-container select {
+            width: 100%;
+        }
+
+        iframe {
+            height: 400px;
+        }
+
+        .date-time-container {
+            flex-direction: column;
+            align-items: stretch;
+        }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-container">
+    <div class="nav-extra">
+    <div class="menu-container" id="menuContainer">
+    <button class="menu-btn" id="menuBtn">MENU</button>
+    <ul class="dropdown-menu">
+    <li class="dropdown-item">
+      <a href="{{ url_for('oswego_team') }}">OSWEGO Student Team</a>
+    </li>
+    <li class="dropdown-item">
+    <a href="{{ url_for('faq') }}">FAQs</a>
+    </li>
+    <li class="dropdown-item">
+    <a href="{{ url_for('routes') }}">ROUTES &amp; SCHEDULES</a>
+    </li>
+    </ul>
+    </div>
+    </div>
+    <div class="logo-container">
+    <a href="{{ url_for('index') }}">
+    <img src="{{ url_for('static', filename='images/logo.jpg') }}" alt="Centro Logo">
+    </a>
+    </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main>
+    <form action="/frontend/generate_map" method="POST">
+      <div class="dropdown-container">
+        <select name="route" id="route-select">
+          <option value="">Select Bus Route</option>
+          <option value="OSW1A" {{ 'selected' if selected_route == 'OSW1A' else '' }}>Walmart Via 104</option>
+          <option value="OSW10" {{ 'selected' if selected_route == 'OSW10' else '' }}>Blue Route</option>
+          <option value="OSW11" {{ 'selected' if selected_route == 'OSW11' else '' }}>Green Route</option>
+          <!-- <option value="OSW46" {{ 'selected' if selected_route == 'OSW46' else '' }}>Oswego-Syracuse</option> -->
+          <option value="SY74" {{ 'selected' if selected_route == 'SY74' else '' }}>SY74</option>
+          <option value="SY76" {{ 'selected' if selected_route == 'SY76' else '' }}>SY76</option>
+          <!-- <option value="SY40" {{ 'selected' if selected_route == 'SY40' else '' }}>SY40</option> -->
+          <option value="SY80" {{ 'selected' if selected_route == 'SY80' else '' }}>SY80</option>
+        </select>
+
+        <select name="direction" id="direction-type-select">
+          <option value="">Select Direction</option>
+        </select>
+
+        <select name="stop" id="stop-select">
+          <option value="">Select Stop</option>
+        </select>
+
+        <!-- Date and Time Picker UI -->
+        <div class="date-time-container">
+          <div class="calendar-icon" id="show-calendar">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+          </div>
+          <div id="datetime-display">Select date and time</div>
+          <input type="hidden" id="datetime-picker" name="selected_datetime">
+        </div>
+
+        <select id="hour-dropdown" name="selected_hour" style="display: none;">
+          <option value="">Select hour</option>
+
+        </select>
+        
+        
+
+        {% if prediction %}
+        <div style="margin-top: 10px; font-weight: bold; font-size: 18px;">
+            {{ prediction }}
+        </div>
+        {% endif %}
+      </div>
+    </form>
+
+    <iframe id="map" src="{{ url_for('static', filename='bus_stops_map.html') }}"></iframe>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-container">
+      <div class="footer-info">
+        <p>&copy; Oswego Team. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+
+    
+    
+    document.addEventListener('DOMContentLoaded', () => {
+      const routeSelect = document.getElementById('route-select');
+      const directionSelect = document.getElementById('direction-type-select');
+      const stopSelect = document.getElementById('stop-select');
+      const mapFrame = document.getElementById('map');
+      const showCalendarBtn = document.getElementById('show-calendar');
+      const datetimePicker = document.getElementById('datetime-picker');
+      const datetimeDisplay = document.getElementById('datetime-display');
+      
+      // Initialize date picker with Flatpickr
+      const flatpickrInstance = flatpickr(datetimePicker, {
+        enableTime: true,
+        dateFormat: "Y-m-d H:i",
+        defaultDate: new Date(),
+        minuteIncrement: 15,
+        onChange: function(selectedDates, dateStr) {
+          datetimeDisplay.textContent = formatDateTime(selectedDates[0]);
+          
+          // If all selections are made, update the map with new date
+          if (routeSelect.value && directionSelect.value && stopSelect.value) {
+            updateMap();
+          }
+        }
+      });
+      
+      // Format date for display
+      function formatDateTime(date) {
+        const options = { 
+          weekday: 'short',
+          month: 'short', 
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        };
+        return date.toLocaleString('en-US', options);
+      }
+      
+      // Show calendar when icon is clicked
+      showCalendarBtn.addEventListener('click', function() {
+        flatpickrInstance.open();
+      });
+      
+      // Set initial date
+      flatpickrInstance.setDate(new Date());
+      datetimeDisplay.textContent = formatDateTime(new Date());
+      
+      // Store all stops for the current route
+      let allStopsForRoute = [];
+      
+      // Route change event
+      routeSelect.addEventListener('change', function() {
+        const selectedRoute = this.value;
+        
+        // Reset dropdowns
+        directionSelect.innerHTML = '<option value="">Select Direction</option>';
+        stopSelect.innerHTML = '<option value="">Select Stop</option>';
+        
+        // Clear stored stops
+        allStopsForRoute = [];
+        
+        // Reset map if no route selected
+        if (!selectedRoute) {
+          mapFrame.src = '{{ url_for("static", filename="bus_stops_map.html") }}';
+          const predictionBox = document.getElementById('prediction-box');
+          if (predictionBox) predictionBox.innerText = '';
+          return;
+        }
+
+        
+        
+        // Load directions for selected route
+        fetch(`/get_directions/${encodeURIComponent(selectedRoute)}`)
+          .then(response => response.json())
+          .then(directions => {
+            directions.forEach(dir => {
+              const option = document.createElement('option');
+              option.value = dir.value;
+              option.text = dir.name;
+              directionSelect.appendChild(option);
+            });
+          })
+          .catch(err => console.error("Error fetching directions:", err));
+        
+        // Load all stops for the route (we'll filter them later)
+        fetch(`/get_stops/${encodeURIComponent(selectedRoute)}`)
+          .then(response => response.json())
+          .then(stops => {
+            // Store all stops for filtering later
+            allStopsForRoute = stops;
+          })
+          .catch(err => console.error("Error fetching stops:", err));
+      });
+
+      
+      
+      // Direction change event
+      directionSelect.addEventListener('change', function() {
+        const selectedDirection = this.value;
+        const selectedRoute = routeSelect.value;
+        
+        // Reset stops dropdown
+        stopSelect.innerHTML = '<option value="">Select Stop</option>';
+        
+        if (!selectedDirection || !selectedRoute) return;
+        
+        // If we've already loaded stops for this route, filter them
+        if (allStopsForRoute.length > 0) {
+          filterStopsByDirection(selectedDirection);
+        } else {
+          // Otherwise, load stops with direction filter
+          fetch(`/get_stops/${encodeURIComponent(selectedRoute)}?direction=${encodeURIComponent(directionSelect.selectedOptions[0].text)}`)
+            .then(response => response.json())
+            .then(stops => {
+              allStopsForRoute = stops;
+              filterStopsByDirection(selectedDirection);
+            })
+            .catch(err => console.error("Error fetching stops:", err));
+        }
+      });
+      
+      // Filter stops based on direction
+      function filterStopsByDirection(direction) {
+        // Reset stops dropdown
+        stopSelect.innerHTML = '<option value="">Select Stop</option>';
+        
+        // Filter stops based on direction
+        const filteredStops = allStopsForRoute.filter(stop => {
+          // For direction "0" show stops with DirectionName matching direction1
+          // For direction "1" show stops with DirectionName matching direction2
+          if (direction === "0") {
+            return stop.DirectionName === directionSelect.selectedOptions[0].text;
+          } else if (direction === "1") {
+            return stop.DirectionName === directionSelect.selectedOptions[0].text;
+          }
+          return true; // If no direction selected, show all
+        });
+        
+        // Add filtered stops to dropdown
+        filteredStops.forEach(stop => {
+          const option = document.createElement('option');
+          option.value = stop.stop_name;
+          option.dataset.id = stop.stop_id;
+          option.text = stop.stop_name;
+          stopSelect.appendChild(option);
+        });
+      }
+      
+      // Stop change event - update map
+      stopSelect.addEventListener('change', updateMap);
+    });
+
+    function populateHourDropdown() {
+      const hourDropdown = document.getElementById('hour-dropdown');
+      hourDropdown.innerHTML = '<option value="">Select hour</option>';
+      for (let i = 0; i < 24; i++) {
+        const hour = i.toString().padStart(2, '0') + ":00";
+        const option = document.createElement('option');
+        option.value = hour;
+        option.textContent = hour;
+        hourDropdown.appendChild(option);
+      }
+    }
+
+
+    // Update the updateMap function to better handle prediction times
+// Improved updateMap function with better prediction handling
+function updateMap() {
+  const routeSelect = document.getElementById('route-select');
+  const directionSelect = document.getElementById('direction-type-select');
+  const stopSelect = document.getElementById('stop-select');
+  const mapFrame = document.getElementById('map');
+  const datetimePicker = document.getElementById('datetime-picker');
+  
+  const route = routeSelect.value;
+  const direction = directionSelect.value;
+  const directionText = directionSelect.selectedOptions[0]?.text || '';
+  const stop = stopSelect.value;
+  const stopId = stopSelect.selectedOptions[0]?.dataset.id;
+  const selectedDatetime = datetimePicker.value;
+
+  if (!route || !direction || !stop) return;
+
+  // For debugging
+  console.log("Sending request with:", { 
+    route, direction, directionText, stop, stopId, selectedDatetime 
+  });
+
+  // Update map with selected values
+  fetch('/frontend/generate_map', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ 
+      route, 
+      direction, 
+      directionText,
+      stop, 
+      stopId,
+      selected_datetime: selectedDatetime
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
+    console.log("Received data:", data); // Debug log to see what we get from server
+    
+    if (data.map_file) {
+      mapFrame.src = '/' + data.map_file + '?t=' + new Date().getTime();
+    }
+    
+    // Handle prediction display
+    handlePredictionDisplay(data.prediction);
+  })
+  .catch(err => console.error('Map update failed:', err));
+}
+
+// Separate function to handle prediction display
+function handlePredictionDisplay(prediction) {
+  console.log("Processing prediction:", prediction); // Debug log
+  
+  // Get or create the prediction box
+  let box = document.getElementById('prediction-box');
+  if (!box) {
+    box = document.createElement('div');
+    box.id = 'prediction-box';
+    document.querySelector('.dropdown-container').appendChild(box);
+  }
+  
+  // Handle different prediction cases
+  if (!prediction) {
+    box.innerText = "No prediction available";
+    return;
+  }
+  
+  let messageText = "";
+  
+  // Handle special cases with exact string comparison
+   if (prediction === "bus") {
+    messageText = "Next bus arrival: No bus scheduled for this route";
+  } else if (prediction === "no bus for given time") {
+    messageText = "Next bus arrival: No bus for this given time";
+  } else {
+    messageText = "Next bus arrival: " + prediction;
+  }
+  
+  console.log("Setting prediction text to:", messageText); // Debug log
+  box.innerText = messageText;
+}
+  </script>
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
