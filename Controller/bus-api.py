@@ -440,6 +440,21 @@ def get_bus_arrival_prediction(stop_id, route, direction, day, month, year, inpu
                 predicted_datetime = min(predicted_times)
                 return predicted_datetime.strftime("%Y-%m-%d %H:%M:%S")
 
+def write_to_JSON():
+    db = mysql.connector.connect(**DATABASE, connection_timeout=200)
+    cursor = db.cursor(dictionary=True)
+    getResults = ("""
+        SELECT * FROM ServiceBulletin""")
+    cursor.execute(getResults)
+    results = cursor.fetchall()
+    print(results)
+
+    writeJson = json.dumps(results)
+
+    with open("alerts.json", "w") as file:
+        write = file.write(writeJson)
+
+schedule.every(1).hours.do(write_to_JSON)
 
 def get_stop_A(stop, route, direction):
     db = mysql.connector.connect(**DATABASE)
