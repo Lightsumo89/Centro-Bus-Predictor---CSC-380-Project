@@ -4,28 +4,16 @@ create table Route(route_id varchar(10), route_name varchar(35), primary key(rou
 
 //RouteStops documents what stops are part of what route
 
-create table RouteStops(route_id varchar(10), stop_id int(5), primary key(route_id, stop_id), foreign key(route_id) references Route(route_id), foreign key(stop_id) references Stop(stop_id));
+create table RouteStops(route_id varchar(10), stop_id int(5), route_dir varchar(20), primary key(route_id, stop_id, route_dir), foreign key(route_id) references Route(route_id), foreign key(stop_id) references Stop(stop_id));
 
-create table Bus(vehicle_id int(5), pattern_id int(5), route_id varchar(10), primary key(vehicle_id), foreign key(route_id) references Route(route_id)); 
+//arrival data 
 
-//arrival data w auto increment pk
+create table ServiceBulletin(route_id varchar(10), alert_details varchar(500), alert_cause varchar(70), primary key(route_id), foreign key(route_id) references Route(route_id));
 
-create table HistoricArrivals(delay_id int auto_increment, stop_id int(5) not null, route_id varchar(10) not null, route_dir varchar(20) not null, arrival_time time(0) not null, arrival_date date, delay double, primary key(delay_id), foreign key(stop_id) references Stop(stop_id), foreign key(route_id) references Route(route_id));
+create table Delays_n(StopName varchar(100), StopID varchar(10), Route varchar(10), Direction varchar(20), ArriveTime datetime, Delay double, ID int);
 
-//making things searchable
+create index stop on Delays_n(StopID);
+create index route on Delays_n(Route);
+create index direction on Delays_n(Direction);
 
-create index stop on HistoricArrivals(stop_id);
-create index route on HistoricArrivals(route_id);
-create index direction on HistoricArrivals(route_dir);
-
-insert into Route values('SY76', 'Salt Springs Rd');
-insert into Stop values(17652, 'B13');
-insert into Stop values(17872, 'Bridge St & Celi Dr');
-insert into Stop values(18279, 'Bridge St & Widewaters Pkwy');
-insert into Stop values(2226, 'E Genesee St & Allen St');
-insert into Stop values(2141, 'E Genesee St & Almond St');
-insert into RouteStops values('SY76', 17652);
-insert into RouteStops values('SY76', 17872);
-insert into RouteStops values('SY76', 18279);
-insert into RouteStops values('SY76', 2226);
-insert into RouteStops values('SY76', 2141);
+create table LastArrival2(StopName varchar(100), StopID varchar(10), Route varchar(10), Direction varchar(20), ArriveTime datetime, Delay double, VehicleID varchar(10), primary key(VehicleID));

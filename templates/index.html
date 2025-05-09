@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Centro - Public Transportation</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+<header>
+<div class="header-container">
+<div class="nav-extra">
+<div class="menu-container" id="menuContainer">
+<button class="menu-btn" id="menuBtn">MENU</button>
+<ul class="dropdown-menu">
+<li class="dropdown-item">
+<button class="submenu-btn">ABOUT ▾</button>
+<ul class="nested-menu">
+<li><a href="{{ url_for('contact') }}">Contact Us</a></li>
+<li><a href="{{ url_for('faq') }}">FAQs</a></li>
+<li><a href="{{ url_for('time_operation') }}">Hours of Operation</a></li>
+<li><a href="{{ url_for('oswego_team') }}">OSWEGO Student Team</a></li>
+</ul>
+</li>
+<li class="dropdown-item">
+<a href="{{ url_for('faq') }}">FAQs</a>
+</li>
+<li class="dropdown-item">
+<a href="{{ url_for('how_to_ride') }}">HOW TO RIDE</a>
+</li>
+<li class="dropdown-item">
+<a href="{{ url_for('passes') }}">PURCHASE</a>
+</li>
+<li class="dropdown-item">
+<a href="{{ url_for('updates') }}">Service Bulletins</a>
+</li>
+<li class="dropdown-item">
+<a href="{{ url_for('routes') }}">ROUTES &amp; SCHEDULES</a>
+</li>
+</ul>
+</div>
+</div>
+<div class="logo-container">
+<a href="{{ url_for('index') }}">
+<img src="{{ url_for('static', filename='images/logo.jpg') }}" alt="Centro Logo">
+</a>
+</div>
+</div>
+</header>
+
+<main>
+<section class="hero">
+<div class="hero-carousel">
+<div class="carousel-inner">
+<div class="carousel-item active" style="background-image: url('{{ url_for('static', filename='images/image1.jpeg') }}')"></div>
+<div class="carousel-item" style="background-image: url('{{ url_for('static', filename='images/image2.jpg') }}')"></div>
+<div class="carousel-item" style="background-image: url('{{ url_for('static', filename='images/image3.jpg') }}')"></div>
+<div class="carousel-item" style="background-image: url('{{ url_for('static', filename='images/image4.jpg') }}')"></div>
+</div>
+</div>
+<div class="hero-content">
+<h1>Plan Your Trip</h1>
+<p>Get real-time updates and navigate your journey with ease.</p>
+<a href="{{ url_for('plan_your_trip') }}" class="cta-btn">Track Your Bus</a>
+</div>
+</section>
+
+<section class="quick-links">
+<div class="link-card">
+<h2>Routes &amp; Schedules</h2>
+<p>Find your bus route and check schedules instantly.</p>
+<a href="{{ url_for('routes') }}">Learn More</a>
+</div>
+<div class="link-card">
+<h2>Fares &amp; Passes</h2>
+<p>View current fares or purchase passes online.</p>
+<a href="{{ url_for('fares') }}">Learn More</a>
+</div>
+<div class="link-card">
+<h2>Help</h2>
+<p>Click here if you are not sure how to use this page.</p>
+<a href="{{ url_for('news') }}">Learn More</a>
+</div>
+</section>
+
+<section class="info-announcement">
+<h2>Service Alerts</h2>
+<p>Be aware of any service changes or delays.</p>
+<a href="{{ url_for('alerts') }}">View Alerts</a>
+</section>
+</main>
+
+  <footer>
+    <div class="footer-container">
+      <div class="footer-info">
+        <p>&copy; Oswego Team D. All rights reserved. Contact - Monday - Friday: 8:00 AM - 5:00 PM Phone: (315) 442-3333</p>
+      </div>
+    </div>
+  </footer>
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Centro Help Page</title>
+  <link rel="stylesheet" href="static/styles.css">
+</head>
+<body>
+  <header>
+    <div class="header-container">
+      <div class="nav-extra">
+        <div class="menu-container" id="menuContainer">
+          <button class="menu-btn" id="menuBtn">MENU</button>
+          <ul class="dropdown-menu">
+            <li class="dropdown-item">
+              <a href="faq.html">FAQs</a>
+            </li>
+            <li class="dropdown-item">
+              <a href="help.html">HELP</a>
+            </li>
+            <li class="dropdown-item">
+              <a href="team-d.html">OSWEGO TEAM</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+      <div class="logo-container">
+        <a href="index.html">
+          <img src="logo.jpg" alt="Centro Logo">
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="help-section">
+      <div class="faq-item">
+        <h2>Help & Support</h2>
+        <p>Welcome to the Centro Help Page. Below are helpful instructions and support resources for using our public transportation tools.</p>
+      </div>
+
+      <div class="faq-item">
+        <h2>Quick Start Guide</h2>
+        <p>Use the <a href="plan-your-trip.html">Map</a> to see when buses are arriving at specific stops.</p>
+        <p>Click on any bus stop marker to view prediction times.</p>
+        <p>Use the MENU above to visit other pages like FAQs and route listings.</p>
+      </div>
+
+      <div class="faq-item">
+        <h2>Using the Map</h2>
+        <p>Our interactive map helps you view bus arrival predictions in real time:</p>
+        <ul>
+          <p>Click on any stop icon to see predicted bus arrival times.</p>
+          <p>The map updates approximately every 15 seconds with new data.</p>
+          <p>Enable location services on your device to automatically find nearby stops.</p>
+        </ul>
+        <p><a href="plan-your-trip.html">Go to the Map Page</a></p>
+      </div>
+
+      <div class="faq-item">
+        <h2>Viewing Routes</h2>
+        <p>To explore all the routes we’ve mapped out:</p>
+        <ul>
+          <p>Visit the <a href="routes.html">Routes Page</a> to view all bus routes currently supported.</p>
+          <p>Each route includes main stops and directional information.</p>
+          <p>This is useful when planning a trip in advance or identifying which bus you need.</p>
+        </ul>
+      </div>
+
+      <div class="faq-item">
+        <h2>Troubleshooting</h2>
+        <ul>
+          <p><strong>Map not loading?</strong> Ensure your browser supports JavaScript and that you're connected to the internet.</p>
+          <p><strong>Predictions not updating?</strong> Refresh the page; predictions are refreshed every 15 seconds automatically.</p>
+          <p><strong>Can't find your stop?</strong> Zoom in on the map or use location services to highlight nearby stops.</p>
+        </ul>
+      </div>
+
+      <div class="faq-item">
+        <h2>Need More Help?</h2>
+        <p>For additional support, you can reach out to Centro Customer Service:</p>
+        <ul>
+          <p>Phone: (315) 442-3333</p>
+          <p>Email: support@centro.org</p>
+          <p>Hours: Monday - Friday, 8:00 AM - 5:00 PM</p>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="footer-container">
+      <div class="footer-info">
+        <p>&copy; Oswego Team D. All rights reserved. Contact - Monday - Friday: 8:00 AM - 5:00 PM Phone: (315) 442-3333</p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const menuBtn = document.getElementById('menuBtn');
+      const menuContainer = document.getElementById('menuContainer');
+      const dropdownMenu = menuContainer.querySelector('.dropdown-menu');
+
+      // Toggle the dropdown menu when clicking the menu button
+      menuBtn.addEventListener('click', function(e) {
+        e.stopPropagation(); // Prevent propagation to the document click listener
+        menuContainer.classList.toggle('active'); // Toggle the 'active' class on the menu
+      });
+
+      // Prevent the dropdown from closing when clicking inside the dropdown menu
+      dropdownMenu.addEventListener('click', function(e) {
+        e.stopPropagation(); // Prevent the menu from closing when clicking inside the dropdown
+      });
+
+      // Close the menu if clicking outside of the menu container
+      document.addEventListener('click', function(e) {
+        if (!menuContainer.contains(e.target)) {
+          menuContainer.classList.remove('active');
+        }
+      });
+
+      // Close the menu when pressing Escape key
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          menuContainer.classList.remove('active');
+        }
+      });
+
+      // Optional: Accordion-style functionality for FAQ items
+      const faqItems = document.querySelectorAll('.faq-item');
+      faqItems.forEach(function(item) {
+        const question = item.querySelector('h2');
+        question.addEventListener('click', function() {
+          item.classList.toggle('active');
+        });
+      });
+    });
+  </script>
+</body>
+</html>
